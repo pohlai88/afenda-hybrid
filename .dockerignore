@@ -1,0 +1,11 @@
+# Ignore files for Docker builds (if needed in future)
+node_modules
+.git
+.env
+.env.*
+*.log
+dist
+build
+coverage
+.vscode
+.idea

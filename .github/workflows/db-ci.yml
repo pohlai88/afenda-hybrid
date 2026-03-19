@@ -1,0 +1,751 @@
+name: Database CI Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/db/schema/**'
+      - 'src/db/migrations/**'
+      - 'drizzle.config.ts'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/db/schema/**'
+      - 'src/db/migrations/**'
+
+env:
+  POSTGRES_VERSION: '16'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_test
+
+jobs:
+  # ============================================================================
+  # STAGE 1: Schema Consistency & Validation
+  # ============================================================================
+
+  schema-check:
+    name: "📋 Schema Consistency Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check schema consistency
+        run: pnpm db:check
+
+      - name: Validate migration format and custom SQL
+        run: pnpm check:migrations
+
+      - name: Check for schema drift
+        run: pnpm check:drift
+
+      - name: Run strict DB gate
+        run: pnpm gate:strict
+
+      - name: Verify no uncommitted migrations
+        run: |
+          pnpm db:generate --name=ci-check
+          if [ -n "$(git status --porcelain src/db/migrations)" ]; then
+            echo "::error::Uncommitted schema changes detected. Run 'pnpm db:generate' and commit the migration."
+            git diff src/db/migrations
+            exit 1
+          fi
+
+  # ============================================================================
+  # STAGE 2: Custom SQL Validation
+  # ============================================================================
+
+  custom-sql-validation:
+    name: "🔧 Custom SQL Validation"
+    runs-on: ubuntu-latest
+    needs: schema-check
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_sql_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create required extensions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_sql_check -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+
+      - name: Validate Custom SQL Registry
+        run: |
+          echo "Validating CUSTOM_SQL_REGISTRY.json against schema..."
+          pnpm check:custom-sql-registry
+
+      - name: Syntax check custom SQL blocks
+        run: |
+          echo "Checking custom SQL syntax..."
+          pnpm check:custom-sql-syntax
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_sql_check
+
+      - name: Verify custom SQL markers in migrations
+        run: pnpm check:migrations --strict
+
+  # ============================================================================
+  # STAGE 3: Migration Testing (Up/Down)
+  # ============================================================================
+
+  migration-test:
+    name: "🔄 Migration Up/Down Test"
+    runs-on: ubuntu-latest
+    needs: schema-check
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create required extensions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+
+      - name: Apply migrations (up)
+        run: pnpm db:migrate
+
+      - name: Verify schema structure
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT schema_name FROM information_schema.schemata 
+            WHERE schema_name IN ('core', 'security', 'audit', 'hr', 'finance');
+          "
+
+      - name: Verify all tables created
+        run: |
+          echo "Verifying expected tables exist..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT schemaname, tablename 
+            FROM pg_tables 
+            WHERE schemaname IN ('core', 'security', 'audit', 'hr', 'finance')
+            ORDER BY schemaname, tablename;
+          "
+
+      - name: Verify indexes created
+        run: |
+          echo "Verifying indexes..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT schemaname, tablename, indexname 
+            FROM pg_indexes 
+            WHERE schemaname IN ('core', 'security', 'audit', 'hr', 'finance')
+            ORDER BY schemaname, tablename, indexname;
+          "
+
+      - name: Verify foreign keys
+        run: |
+          echo "Verifying foreign key constraints..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT 
+              tc.table_schema,
+              tc.table_name,
+              tc.constraint_name,
+              ccu.table_schema AS foreign_table_schema,
+              ccu.table_name AS foreign_table_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage ccu
+              ON tc.constraint_name = ccu.constraint_name
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND tc.table_schema IN ('core', 'security', 'audit', 'hr', 'finance')
+            ORDER BY tc.table_schema, tc.table_name;
+          "
+
+      - name: Verify triggers and functions
+        run: |
+          echo "Verifying triggers..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT trigger_schema, trigger_name, event_object_table, action_timing, event_manipulation
+            FROM information_schema.triggers
+            WHERE trigger_schema IN ('core', 'security', 'audit', 'hr', 'finance')
+            ORDER BY trigger_schema, trigger_name;
+          "
+          
+          echo "Verifying functions..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            SELECT routine_schema, routine_name, routine_type
+            FROM information_schema.routines
+            WHERE routine_schema IN ('core', 'security', 'audit', 'hr', 'finance')
+            ORDER BY routine_schema, routine_name;
+          "
+
+      - name: Drop and recreate database (down simulation)
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "
+            DROP DATABASE afenda_test;
+            CREATE DATABASE afenda_test;
+          "
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+
+      - name: Re-apply migrations (up again - idempotency check)
+        run: pnpm db:migrate
+
+  # ============================================================================
+  # STAGE 4: Concurrent Migration Safety
+  # ============================================================================
+
+  concurrent-migration-safety:
+    name: "🔐 Concurrent Migration Safety"
+    runs-on: ubuntu-latest
+    needs: schema-check
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_concurrent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create required extensions
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_concurrent -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+
+      - name: Check for unsafe concurrent patterns
+        run: |
+          echo "Checking migrations for concurrent safety issues..."
+          
+          # Check for CREATE INDEX without CONCURRENTLY on large tables
+          if ls src/db/migrations/**/migration.sql 1> /dev/null 2>&1; then
+            for file in src/db/migrations/**/migration.sql; do
+              # Check for non-concurrent index creation
+              if grep -qE "CREATE (UNIQUE )?INDEX(?! CONCURRENTLY)" "$file"; then
+                echo "::warning file=$file::Non-concurrent index creation detected. Consider using CREATE INDEX CONCURRENTLY for large tables."
+              fi
+              
+              # Check for ALTER TABLE ... ADD CONSTRAINT without timeout
+              if grep -qE "ALTER TABLE.*ADD CONSTRAINT.*FOREIGN KEY" "$file"; then
+                echo "::notice file=$file::Foreign key constraint addition detected. Ensure lock timeout is set in production."
+              fi
+              
+              # Check for LOCK TABLE
+              if grep -qE "LOCK TABLE" "$file"; then
+                echo "::warning file=$file::Explicit LOCK TABLE detected. Verify this is necessary."
+              fi
+            done
+          fi
+          
+          echo "✅ Concurrent safety check completed"
+
+      - name: Test migration with lock timeout
+        run: |
+          # Set a reasonable lock timeout and run migrations
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_concurrent -c "
+            SET lock_timeout = '10s';
+            SET statement_timeout = '30s';
+          "
+          
+          pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_concurrent
+
+  # ============================================================================
+  # STAGE 5: Database Smoke Tests
+  # ============================================================================
+
+  smoke-tests:
+    name: "💨 Database Smoke Tests"
+    runs-on: ubuntu-latest
+    needs: migration-test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+          pnpm db:migrate
+
+      - name: Run smoke tests
+        run: pnpm test:db:smoke
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Run contract tests
+        run: pnpm test:db:contracts
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Run enum validation tests
+        run: pnpm test:db:enums
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+  # ============================================================================
+  # STAGE 6: Data Integrity Tests
+  # ============================================================================
+
+  data-integrity-tests:
+    name: "🔗 Data Integrity Tests"
+    runs-on: ubuntu-latest
+    needs: migration-test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_integrity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_integrity -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+          pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_integrity
+
+      - name: Test tenant isolation constraints
+        run: |
+          echo "Testing tenant isolation..."
+          pnpm test:db:tenant-isolation
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_integrity
+
+      - name: Test check constraints
+        run: |
+          echo "Testing check constraints..."
+          pnpm test:db:constraints
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_integrity
+
+      - name: Test foreign key cascades
+        run: |
+          echo "Testing FK cascade behavior..."
+          pnpm test:db:fk-cascades
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_integrity
+
+  # ============================================================================
+  # STAGE 7: TypeScript Type Safety
+  # ============================================================================
+
+  type-safety:
+    name: "📝 TypeScript Type Safety"
+    runs-on: ubuntu-latest
+    needs: schema-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check schema files
+        run: pnpm tsc --noEmit
+
+      - name: Verify Zod schema exports
+        run: pnpm db:verify-exports
+
+      - name: Check branded ID consistency
+        run: pnpm check:branded-ids
+
+      - name: Verify type inference
+        run: |
+          echo "Checking type inference for all tables..."
+          pnpm check:type-inference
+
+  # ============================================================================
+  # STAGE 8: Security Scan
+  # ============================================================================
+
+  security-scan:
+    name: "🔒 Migration Security Scan"
+    runs-on: ubuntu-latest
+    needs: schema-check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for sensitive data in migrations
+        run: |
+          if grep -rE "(password|secret|api_key|token)\s*=" src/db/migrations/**/*.sql 2>/dev/null; then
+            echo "::error::Potential sensitive data found in migration files"
+            exit 1
+          fi
+          echo "No sensitive data patterns found"
+
+      - name: Check for dangerous operations
+        run: |
+          DANGEROUS=$(grep -rE "DROP TABLE|TRUNCATE|DELETE FROM [^W]*$" src/db/migrations/**/*.sql 2>/dev/null || true)
+          if [ -n "$DANGEROUS" ]; then
+            echo "::warning::Dangerous operations detected in migrations. Ensure rollback plan exists."
+            echo "$DANGEROUS"
+          fi
+
+      - name: Verify custom SQL is commented and documented
+        run: |
+          # Check that all custom SQL has proper markers
+          if ! pnpm check:migrations; then
+            echo "::error::Migration validation failed. Ensure all custom SQL is marked with '-- CUSTOM: <purpose> (CSQL-XXX)' and documented in CUSTOM_SQL_REGISTRY.json"
+            exit 1
+          fi
+          
+          # Additional check: verify registry exists and is valid JSON
+          if [ ! -f "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+            echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+            echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
+            exit 1
+          fi
+          
+          echo "✅ Custom SQL verification passed"
+
+      - name: Check for SQL injection vulnerabilities
+        run: |
+          echo "Checking for potential SQL injection patterns..."
+          
+          # Check for string concatenation in SQL
+          if grep -rE "\+\s*['\"].*SELECT|INSERT|UPDATE|DELETE" src/db/ --include="*.ts" 2>/dev/null | grep -v "test"; then
+            echo "::warning::Potential SQL injection via string concatenation detected"
+          fi
+          
+          # Check for template literals without sql tag
+          if grep -rE '\$\{.*\}.*FROM|WHERE|INSERT|UPDATE' src/db/ --include="*.ts" 2>/dev/null | grep -v "sql\`" | grep -v "test"; then
+            echo "::warning::Template literal without sql tag detected - potential SQL injection"
+          fi
+          
+          echo "✅ SQL injection check completed"
+
+      - name: Verify RLS policies (if applicable)
+        run: pnpm check:rls-policies || true
+        continue-on-error: true
+
+  # ============================================================================
+  # STAGE 9: Performance Baseline
+  # ============================================================================
+
+  performance-baseline:
+    name: "⚡ Performance Baseline"
+    runs-on: ubuntu-latest
+    needs: migration-test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: afenda_perf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_perf -c "
+            CREATE EXTENSION IF NOT EXISTS btree_gist;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          "
+          pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_perf
+
+      - name: Check index usage patterns
+        run: |
+          echo "Analyzing index patterns..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_perf -c "
+            -- Check for missing indexes on foreign keys
+            SELECT
+              c.conrelid::regclass AS table_name,
+              a.attname AS column_name,
+              c.confrelid::regclass AS foreign_table
+            FROM pg_constraint c
+            JOIN pg_attribute a ON a.attnum = ANY(c.conkey) AND a.attrelid = c.conrelid
+            LEFT JOIN pg_index i ON i.indrelid = c.conrelid AND a.attnum = ANY(i.indkey)
+            WHERE c.contype = 'f'
+              AND i.indexrelid IS NULL
+              AND c.conrelid::regclass::text LIKE 'core.%'
+              OR c.conrelid::regclass::text LIKE 'security.%'
+              OR c.conrelid::regclass::text LIKE 'audit.%'
+              OR c.conrelid::regclass::text LIKE 'hr.%';
+          "
+
+      - name: Run query plan analysis
+        run: |
+          echo "Analyzing common query patterns..."
+          pnpm test:db:query-plans || true
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_perf
+        continue-on-error: true
+
+  # ============================================================================
+  # Final CI Gate
+  # ============================================================================
+
+  ci-gate:
+    name: "🚦 CI Gate"
+    runs-on: ubuntu-latest
+    needs: [schema-check, custom-sql-validation, migration-test, concurrent-migration-safety, smoke-tests, data-integrity-tests, type-safety, security-scan, performance-baseline]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          echo "=== CI Gate Results ==="
+          echo "schema-check: ${{ needs.schema-check.result }}"
+          echo "custom-sql-validation: ${{ needs.custom-sql-validation.result }}"
+          echo "migration-test: ${{ needs.migration-test.result }}"
+          echo "concurrent-migration-safety: ${{ needs.concurrent-migration-safety.result }}"
+          echo "smoke-tests: ${{ needs.smoke-tests.result }}"
+          echo "data-integrity-tests: ${{ needs.data-integrity-tests.result }}"
+          echo "type-safety: ${{ needs.type-safety.result }}"
+          echo "security-scan: ${{ needs.security-scan.result }}"
+          echo "performance-baseline: ${{ needs.performance-baseline.result }}"
+          echo "=========================="
+          
+          # Critical checks (must pass)
+          CRITICAL_FAILED=false
+          
+          if [ "${{ needs.schema-check.result }}" != "success" ]; then
+            echo "::error::Schema check failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          if [ "${{ needs.custom-sql-validation.result }}" != "success" ]; then
+            echo "::error::Custom SQL validation failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          if [ "${{ needs.migration-test.result }}" != "success" ]; then
+            echo "::error::Migration test failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          if [ "${{ needs.smoke-tests.result }}" != "success" ]; then
+            echo "::error::Smoke tests failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          if [ "${{ needs.type-safety.result }}" != "success" ]; then
+            echo "::error::Type safety check failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          if [ "${{ needs.security-scan.result }}" != "success" ]; then
+            echo "::error::Security scan failed"
+            CRITICAL_FAILED=true
+          fi
+          
+          # Non-critical checks (warnings)
+          if [ "${{ needs.concurrent-migration-safety.result }}" != "success" ]; then
+            echo "::warning::Concurrent migration safety check had issues"
+          fi
+          
+          if [ "${{ needs.data-integrity-tests.result }}" != "success" ]; then
+            echo "::warning::Data integrity tests had issues"
+          fi
+          
+          if [ "${{ needs.performance-baseline.result }}" != "success" ]; then
+            echo "::warning::Performance baseline check had issues"
+          fi
+          
+          if [ "$CRITICAL_FAILED" = "true" ]; then
+            echo "::error::One or more critical CI checks failed"
+            exit 1
+          fi
+          
+          echo "✅ All critical CI checks passed"

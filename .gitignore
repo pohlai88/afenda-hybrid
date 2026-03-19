@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+
+# Drizzle
+drizzle/meta/
+*.sqlite
+.drizzle/
+
+# Drizzle push artifacts (prevent accidental commits)
+src/db/migrations/**/push-*
+src/db/migrations/**/.push-*
+
+# Temporary migration files
+src/db/migrations/**/*.tmp
+src/db/migrations/**/*-temp.sql
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

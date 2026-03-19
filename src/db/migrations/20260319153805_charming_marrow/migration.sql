@@ -1,0 +1,2 @@
+ALTER TABLE "security"."user_roles" ADD COLUMN "createdAt" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "security"."user_roles" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT now() NOT NULL;

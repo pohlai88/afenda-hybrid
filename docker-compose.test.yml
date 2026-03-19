@@ -1,0 +1,31 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: afenda-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: afenda_test
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    ports:
+      - "5433:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./scripts/docker-init-test-db.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d afenda_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - afenda-test-network
+    # Keep container running for tests
+    command: postgres -c log_statement=all -c log_destination=stderr
+
+volumes:
+  postgres-test-data:
+    driver: local
+
+networks:
+  afenda-test-network:
+    driver: bridge

@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚦 Running early gate checks..."
+
+# TypeScript check
+echo "📝 TypeScript check..."
+pnpm typecheck || exit 1
+
+# Drizzle consistency check
+echo "🔄 Drizzle consistency check..."
+pnpm db:check || exit 1
+
+# Schema drift detection (optional, can skip with SKIP_DRIFT_CHECK=1)
+echo "🔄 Schema drift check..."
+if [ -z "$SKIP_DRIFT_CHECK" ]; then
+  pnpm check:drift --quick || exit 1
+else
+  echo "⚠️  Skipping drift check (SKIP_DRIFT_CHECK set)"
+fi
+
+# Migration validation (optional, can skip with SKIP_MIGRATION_CHECK=1)
+echo "🔍 Migration validation..."
+if [ -z "$SKIP_MIGRATION_CHECK" ]; then
+  pnpm check:migrations --quick || exit 1
+else
+  echo "⚠️  Skipping migration check (SKIP_MIGRATION_CHECK set)"
+fi
+
+# Zod exports verification
+echo "✨ Zod exports check..."
+pnpm db:verify-exports || exit 1
+
+# Lint staged files
+echo "🔍 Lint check..."
+pnpm lint-staged || exit 1
+
+echo "✅ Pre-commit checks passed!"

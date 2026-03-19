@@ -1,0 +1,576 @@
+name: Early Gate - Drift & Quality Detection
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  schedule:
+    # Daily drift check at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      auto_fix:
+        description: 'Run auto-fix before checks'
+        required: false
+        default: false
+        type: boolean
+      strict_mode:
+        description: 'Treat warnings as errors'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: early-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_STRICT_WARNINGS: ${{ github.event.inputs.strict_mode == 'true' && '1' || '0' }}
+
+jobs:
+  # ============================================================================
+  # TIER 1: Instant checks (< 30 seconds) - Run on ALL PRs
+  # ============================================================================
+  
+  lint-check:
+    name: "🔍 Lint Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm lint || true
+        continue-on-error: true
+
+      - name: Check formatting
+        run: pnpm format:check || true
+        continue-on-error: true
+
+  type-check:
+    name: "📝 TypeScript Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript compile check
+        run: pnpm typecheck
+
+  dependency-check:
+    name: "📦 Dependency Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Check lockfile integrity
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high || true
+        continue-on-error: true
+
+      - name: Check for outdated critical packages
+        run: |
+          echo "Checking critical package versions..."
+          pnpm outdated drizzle-orm drizzle-kit zod typescript || true
+
+  # ============================================================================
+  # TIER 2: Schema drift detection (< 1 minute) - Fast schema validation
+  # ============================================================================
+
+  schema-drift:
+    name: "🔄 Schema Drift Detection"
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for schema changes without migration
+        id: drift-check
+        run: |
+          # Run drift detection script
+          if pnpm check:drift; then
+            echo "drift_detected=false" >> $GITHUB_OUTPUT
+            echo "✅ No schema drift detected"
+          else
+            echo "drift_detected=true" >> $GITHUB_OUTPUT
+            echo "::error::Schema drift detected! Schema changes exist without corresponding migration."
+            echo "Run 'pnpm db:generate' to create the migration."
+            exit 1
+          fi
+
+      - name: Verify migration sequence
+        run: |
+          # Check migration files are properly sequenced
+          if ls src/db/migrations/*.sql 1> /dev/null 2>&1; then
+            echo "Checking migration sequence..."
+            ls -la src/db/migrations/*.sql
+            echo "✅ Migration files found"
+          else
+            echo "ℹ️ No migration files yet"
+          fi
+
+      - name: Check drizzle-kit consistency
+        run: pnpm db:check || echo "::warning::drizzle-kit check reported issues"
+
+      - name: Validate migration format and custom SQL
+        run: pnpm check:migrations
+
+  # ============================================================================
+  # TIER 3: Quality gates (< 2 minutes) - Code quality enforcement
+  # ============================================================================
+
+  schema-quality:
+    name: "✨ Schema Quality Gate (Strict)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run strict DB gate
+        run: pnpm gate:strict
+      
+      - name: Check index patterns
+        run: pnpm check:indexes
+      
+      - name: Check relation completeness
+        run: pnpm check:relations
+
+      - name: Check enum consistency
+        run: pnpm check:enums
+
+      - name: Check cross-schema dependencies
+        run: pnpm check:cross-schema
+
+  guideline-compliance:
+    name: "📋 Guideline Compliance"
+    runs-on: ubuntu-latest
+    outputs:
+      has_auto_fixable: ${{ steps.compliance.outputs.has_auto_fixable }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check DB-first guideline compliance (v2)
+        id: compliance
+        run: |
+          OUTPUT=$(pnpm check:compliance 2>&1) || true
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -q "auto-fixable"; then
+            echo "has_auto_fixable=true" >> $GITHUB_OUTPUT
+            echo "::notice::Some issues can be auto-fixed. Run 'pnpm fix:schema' locally."
+          else
+            echo "has_auto_fixable=false" >> $GITHUB_OUTPUT
+          fi
+          # Re-run to get exit code
+          pnpm check:compliance
+
+      - name: Verify tenant isolation patterns
+        run: pnpm check:tenant
+
+      - name: Check constraint patterns
+        run: pnpm check:constraints
+
+      - name: Check naming conventions
+        run: pnpm check:naming
+
+  # ============================================================================
+  # TIER 4: Breaking Change Detection (< 1 minute)
+  # ============================================================================
+
+  breaking-change-detection:
+    name: "⚠️ Breaking Change Detection"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Detect breaking schema changes
+        run: pnpm check:breaking-changes
+        continue-on-error: true
+
+      - name: Check for destructive migrations
+        run: |
+          echo "Checking for destructive operations in migrations..."
+          
+          # Get changed migration files
+          CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/db/migrations/**/*.sql' 2>/dev/null || true)
+          
+          if [ -n "$CHANGED_MIGRATIONS" ]; then
+            echo "Changed migrations:"
+            echo "$CHANGED_MIGRATIONS"
+            
+            # Check for destructive patterns
+            for file in $CHANGED_MIGRATIONS; do
+              if [ -f "$file" ]; then
+                echo "Checking $file..."
+                
+                # DROP TABLE (blocking)
+                if grep -qE "DROP TABLE" "$file"; then
+                  echo "::error file=$file::DROP TABLE detected - requires explicit approval"
+                fi
+                
+                # DROP COLUMN (blocking)
+                if grep -qE "ALTER TABLE.*DROP COLUMN" "$file"; then
+                  echo "::error file=$file::DROP COLUMN detected - requires explicit approval"
+                fi
+                
+                # TRUNCATE (blocking)
+                if grep -qE "TRUNCATE" "$file"; then
+                  echo "::error file=$file::TRUNCATE detected - requires explicit approval"
+                fi
+                
+                # ALTER TYPE (warning)
+                if grep -qE "ALTER TYPE" "$file"; then
+                  echo "::warning file=$file::ALTER TYPE detected - verify backward compatibility"
+                fi
+                
+                # NOT NULL without default (warning)
+                if grep -qE "SET NOT NULL" "$file" && ! grep -qE "SET DEFAULT" "$file"; then
+                  echo "::warning file=$file::SET NOT NULL without DEFAULT - may fail on existing data"
+                fi
+              fi
+            done
+          else
+            echo "No migration changes detected"
+          fi
+
+  # ============================================================================
+  # TIER 5: Security gates (< 1 minute) - Security-focused checks
+  # ============================================================================
+
+  security-gate:
+    name: "🔒 Security Gate"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for secrets in code
+        run: |
+          echo "Scanning for potential secrets..."
+          # Check for common secret patterns
+          if grep -rE "(password|secret|api_key|token|credential)\s*[:=]\s*['\"][^'\"]+['\"]" \
+             --include="*.ts" --include="*.js" --include="*.json" \
+             --exclude-dir=node_modules \
+             --exclude="*.test.ts" \
+             --exclude="*.spec.ts" . 2>/dev/null; then
+            echo "::error::Potential hardcoded secrets detected!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+      - name: Check migration security
+        run: |
+          echo "Checking migration files for security issues..."
+          if ls src/db/migrations/*.sql 1> /dev/null 2>&1; then
+            # Check for dangerous patterns
+            if grep -rE "GRANT ALL|SUPERUSER|CREATEDB|CREATEROLE" src/db/migrations/*.sql 2>/dev/null; then
+              echo "::warning::Elevated privileges detected in migrations"
+            fi
+            
+            # Check for unparameterized queries
+            if grep -rE "DELETE FROM.*WHERE.*=" src/db/migrations/*.sql 2>/dev/null | grep -v "tenant_id"; then
+              echo "::warning::DELETE without tenant_id filter detected"
+            fi
+          fi
+          echo "✅ Migration security check passed"
+
+      - name: Verify RLS patterns (if enabled)
+        run: |
+          echo "Checking RLS policy patterns..."
+          if grep -r "withRLS\|pgPolicy" src/db/schema/ 2>/dev/null; then
+            echo "RLS detected, verifying patterns..."
+            # Ensure RLS policies reference tenant_id
+            if grep -r "pgPolicy" src/db/schema/ | grep -v "tenant_id"; then
+              echo "::warning::RLS policy without tenant_id reference detected"
+            fi
+          fi
+          echo "✅ RLS pattern check passed"
+
+      - name: Run security validation script
+        run: pnpm check:security
+
+  # ============================================================================
+  # TIER 6: Documentation Sync (< 30 seconds)
+  # ============================================================================
+
+  documentation-sync:
+    name: "📚 Documentation Sync"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Custom SQL Registry
+        run: |
+          echo "Validating CUSTOM_SQL_REGISTRY.json..."
+          
+          # Check registry exists
+          if [ ! -f "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+            echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+            echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
+            exit 1
+          fi
+          
+          # Validate against schema
+          pnpm check:custom-sql-registry
+          
+          echo "✅ Custom SQL Registry validation passed"
+
+      - name: Check schema documentation completeness
+        run: pnpm check:docs-sync || true
+        continue-on-error: true
+
+  # ============================================================================
+  # Auto-fix job (optional, triggered manually or on specific conditions)
+  # ============================================================================
+
+  auto-fix:
+    name: "🔧 Auto-Fix (Optional)"
+    runs-on: ubuntu-latest
+    needs: [schema-quality, guideline-compliance]
+    if: |
+      failure() && 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.auto_fix == 'true')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run auto-fix (dry run first)
+        run: |
+          echo "=== Dry Run ==="
+          pnpm fix:schema:dry
+          echo ""
+          echo "=== Applying Fixes ==="
+          pnpm fix:schema
+
+      - name: Run lint fix
+        run: pnpm fix:lint || true
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit fixes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "chore: auto-fix schema issues
+
+          Applied by CI auto-fix workflow.
+          
+          Co-authored-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+          git push
+
+  # ============================================================================
+  # Final Gate - Aggregates all checks
+  # ============================================================================
+
+  early-gate:
+    name: "🚦 Early Gate Status"
+    runs-on: ubuntu-latest
+    needs: [lint-check, type-check, dependency-check, schema-drift, schema-quality, guideline-compliance, security-gate, documentation-sync]
+    if: always()
+    steps:
+      - name: Evaluate gate status
+        run: |
+          echo "=== Early Gate Results ==="
+          echo "lint-check: ${{ needs.lint-check.result }}"
+          echo "type-check: ${{ needs.type-check.result }}"
+          echo "dependency-check: ${{ needs.dependency-check.result }}"
+          echo "schema-drift: ${{ needs.schema-drift.result }}"
+          echo "schema-quality: ${{ needs.schema-quality.result }}"
+          echo "guideline-compliance: ${{ needs.guideline-compliance.result }}"
+          echo "security-gate: ${{ needs.security-gate.result }}"
+          echo "documentation-sync: ${{ needs.documentation-sync.result }}"
+          echo "=========================="
+          
+          # Critical failures (must pass)
+          if [ "${{ needs.type-check.result }}" != "success" ]; then
+            echo "::error::TypeScript check failed - blocking merge"
+            exit 1
+          fi
+          
+          if [ "${{ needs.schema-drift.result }}" != "success" ]; then
+            echo "::error::Schema drift detected - blocking merge"
+            echo "Run 'pnpm db:generate' to create the migration for your schema changes."
+            exit 1
+          fi
+          
+          if [ "${{ needs.schema-quality.result }}" != "success" ]; then
+            echo "::error::Schema quality gate failed - blocking merge"
+            exit 1
+          fi
+          
+          if [ "${{ needs.security-gate.result }}" != "success" ]; then
+            echo "::error::Security gate failed - blocking merge"
+            exit 1
+          fi
+          
+          if [ "${{ needs.documentation-sync.result }}" != "success" ]; then
+            echo "::error::Documentation sync failed - blocking merge"
+            exit 1
+          fi
+          
+          # Warnings (non-blocking but reported)
+          if [ "${{ needs.lint-check.result }}" != "success" ]; then
+            echo "::warning::Lint check had issues (non-blocking)"
+          fi
+          
+          if [ "${{ needs.dependency-check.result }}" != "success" ]; then
+            echo "::warning::Dependency check had issues (non-blocking)"
+          fi
+          
+          if [ "${{ needs.guideline-compliance.result }}" != "success" ]; then
+            echo "::warning::Guideline compliance check had issues"
+          fi
+          
+          echo "✅ Early gate passed!"
