@@ -1,2 +1,2 @@
-// HR Operations schema - transactional tables
-// Add exports here as tables are created (e.g., attendanceLogs, payrollRuns)
+export * from "./attendanceLogs";
+export * from "./leaveRequests";

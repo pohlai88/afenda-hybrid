@@ -144,8 +144,9 @@ d:\AFENDA-HYBRID\
 │       └── db.ts             # Database connection
 ├── scripts/                  # Validation & automation scripts
 ├── docs/                     # Documentation
+│   ├── README.md            # Doc index
 │   ├── SCHEMA_LOCKDOWN.md   # Schema lockdown guide
-│   ├── BLOCKER_RESOLUTION_SUMMARY.md
+│   ├── archive/             # Legacy / one-off reports
 │   └── architecture/
 │       └── 01-db-first-guideline.md
 ├── .env                      # Environment variables (not in Git)
@@ -301,11 +302,11 @@ pnpm db:migrate
 
 ## 📚 Key Documentation
 
-- **Schema Lockdown**: `docs/SCHEMA_LOCKDOWN.md`
-- **Database Guidelines**: `docs/architecture/01-db-first-guideline.md`
+- **Doc index**: [docs/README.md](./README.md)
+- **Schema Lockdown**: [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)
+- **Database Guidelines**: [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)
 - **Custom SQL**: `src/db/schema/audit/CUSTOM_SQL.md`
-- **Migration Readiness**: `MIGRATION_READINESS_REPORT.md`
-- **Blocker Resolution**: `docs/BLOCKER_RESOLUTION_SUMMARY.md`
+- **Legacy reports**: [docs/archive/](./archive/) (migration audits, environment setup logs, etc.)
 
 ---
 

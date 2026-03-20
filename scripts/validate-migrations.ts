@@ -16,9 +16,40 @@ import { createHash } from "crypto";
 
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
 const REGISTRY_PATH = path.join(process.cwd(), "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json");
+const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/migration-exceptions.json");
 
 const quick = process.argv.includes("--quick");
 const bypass = process.argv.includes("--bypass");
+
+interface MigrationException {
+  migration: string;
+  rule: string;
+  reason: string;
+  customSqlIds?: string[];
+  owner?: string;
+  date?: string;
+}
+
+interface MigrationExceptionsConfig {
+  exceptions: MigrationException[];
+}
+
+function loadMigrationExceptions(): MigrationException[] {
+  if (!fs.existsSync(EXCEPTIONS_PATH)) {
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(EXCEPTIONS_PATH, "utf-8");
+    const config = JSON.parse(content) as MigrationExceptionsConfig;
+    return config.exceptions || [];
+  } catch {
+    return [];
+  }
+}
+
+function isExcepted(exceptions: MigrationException[], migration: string, rule: string): boolean {
+  return exceptions.some(e => e.migration === migration && e.rule === rule);
+}
 
 interface ValidationError {
   migration: string;
@@ -170,11 +201,14 @@ function calculateSqlChecksum(sql: string): string {
   return createHash("sha256").update(normalized).digest("hex");
 }
 
-function calculateSnapshotChecksum(snapshot: any): string {
+function calculateSnapshotChecksum(snapshot: unknown): string {
   // Create a deterministic hash from snapshot structure
   // This is a simplified version - in practice, you'd need to understand
   // Drizzle's snapshot format and generate expected SQL hash
-  const normalized = JSON.stringify(snapshot, Object.keys(snapshot).sort());
+  if (typeof snapshot !== "object" || snapshot === null) {
+    return createHash("sha256").update("").digest("hex");
+  }
+  const normalized = JSON.stringify(snapshot, Object.keys(snapshot as Record<string, unknown>).sort());
   return createHash("sha256").update(normalized).digest("hex");
 }
 
@@ -192,6 +226,7 @@ function validateMigrations(): {
 } {
   const migrations = scanMigrationDirectory(MIGRATIONS_DIR);
   const registry = loadCustomSqlRegistry(REGISTRY_PATH);
+  const exceptions = loadMigrationExceptions();
   
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
@@ -220,7 +255,7 @@ function validateMigrations(): {
     
     // Read files
     let sql: string;
-    let snapshot: any;
+    let snapshot: unknown;
     
     try {
       sql = fs.readFileSync(migration.sqlPath, "utf-8");
@@ -238,8 +273,8 @@ function validateMigrations(): {
     // 2. Checksum validation (detect manual edits) - skip in quick mode
     if (!quick) {
       const drizzleSql = extractDrizzleGeneratedSql(sql);
-      const drizzleChecksum = calculateSqlChecksum(drizzleSql);
-      const snapshotChecksum = calculateSnapshotChecksum(snapshot);
+      const _drizzleChecksum = calculateSqlChecksum(drizzleSql);
+      const _snapshotChecksum = calculateSnapshotChecksum(snapshot);
       
       // Note: This is a simplified check. In practice, you'd need to regenerate
       // SQL from snapshot and compare. For now, we just check if SQL structure
@@ -252,12 +287,15 @@ function validateMigrations(): {
       
       if (!hasDrizzlePatterns && drizzleSql.length > 100) {
         // Large SQL without Drizzle patterns suggests hand-written migration
-        warnings.push({
-          migration: migration.name,
-          rule: "possible-hand-written",
-          message: "Migration SQL doesn't contain typical Drizzle patterns",
-          suggestion: "Ensure migration was generated with 'drizzle-kit generate'",
-        });
+        // Check if this migration is excepted (intentionally hand-written custom SQL)
+        if (!isExcepted(exceptions, migration.name, "possible-hand-written")) {
+          warnings.push({
+            migration: migration.name,
+            rule: "possible-hand-written",
+            message: "Migration SQL doesn't contain typical Drizzle patterns",
+            suggestion: "Ensure migration was generated with 'drizzle-kit generate', or add to migration-exceptions.json if intentional",
+          });
+        }
       }
     }
     
@@ -266,7 +304,6 @@ function validateMigrations(): {
     
     // Check for unmarked custom SQL patterns
     const drizzleSql = extractDrizzleGeneratedSql(sql);
-    const customSqlSection = sql.substring(sql.indexOf("-- CUSTOM:") >= 0 ? sql.indexOf("-- CUSTOM:") : sql.length);
     
     // Detect common custom SQL patterns that should be marked
     const customPatterns = [

@@ -7,7 +7,7 @@
  * - Have corresponding TypeScript types exported
  * - Values are documented
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";

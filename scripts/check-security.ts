@@ -9,12 +9,12 @@
  * - Privilege escalation patterns
  * - Audit logging coverage
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
 import * as path from "path";
-import { analyzeSchema, SchemaInfo, TableInfo } from "./lib/schema-analyzer";
+import { analyzeSchema, SchemaInfo } from "./lib/schema-analyzer";
 
 const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
@@ -52,7 +52,8 @@ const CREDENTIAL_PATTERNS = [
 const DANGEROUS_MIGRATION_PATTERNS = [
   { pattern: /GRANT\s+ALL/i, severity: "high" as const, name: "grant-all" },
   { pattern: /SUPERUSER/i, severity: "critical" as const, name: "superuser" },
-  { pattern: /CREATEDB|CREATEROLE/i, severity: "high" as const, name: "elevated-privileges" },
+  // Word-safe: avoid matching column names like "createdBy" (contains CREATEDB)
+  { pattern: /\bCREATE\s+DATABASE\b|\bCREATE\s+ROLE\b/i, severity: "high" as const, name: "elevated-privileges" },
   { pattern: /DROP\s+DATABASE/i, severity: "critical" as const, name: "drop-database" },
   { pattern: /TRUNCATE\s+(?!.*CASCADE)/i, severity: "high" as const, name: "truncate-no-cascade" },
   { pattern: /DELETE\s+FROM\s+\w+\s*;/i, severity: "high" as const, name: "delete-all-rows" },
@@ -92,9 +93,10 @@ function checkSqlInjection(filePath: string): void {
       // Check if it's using sql`` template tag (safe)
       const match = content.match(pattern);
       if (match) {
-        const context = content.substring(Math.max(0, content.indexOf(match[0]) - 50), content.indexOf(match[0]) + match[0].length + 50);
+        const idx = content.indexOf(match[0]);
+        const context = content.substring(Math.max(0, idx - 2500), idx + match[0].length + 80);
         
-        // Skip if using sql`` tag
+        // Skip if match is inside Drizzle sql`...` (look back far enough for multi-line views)
         if (context.includes("sql`") || context.includes("sql.raw")) {
           continue;
         }

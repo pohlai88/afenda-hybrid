@@ -26,10 +26,6 @@ interface Fix {
 
 const fixes: Fix[] = [];
 
-function log(message: string): void {
-  console.log(DRY_RUN ? `[DRY-RUN] ${message}` : message);
-}
-
 function addZodSchemaExports(table: TableInfo): void {
   const content = fs.readFileSync(table.file, "utf-8");
   

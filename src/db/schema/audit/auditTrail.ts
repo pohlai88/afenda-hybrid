@@ -145,7 +145,7 @@ export const auditTrail = auditSchema.table(
     // ═══════════════════════════════════════════════════════════════════════
     // Tenant isolation
     // ═══════════════════════════════════════════════════════════════════════
-    tenantId: integer().notNull(), // Explicit for FK control and partitioning
+    tenantId: integer().notNull(), // FK to core.tenants - tenant isolation and partitioning
 
     // ═══════════════════════════════════════════════════════════════════════
     // Metadata (createdAt only - audit is append-only, no updates)

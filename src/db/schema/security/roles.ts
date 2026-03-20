@@ -14,7 +14,7 @@ export const roles = securitySchema.table(
   "roles",
   {
     roleId: integer().primaryKey().generatedAlwaysAsIdentity(),
-    tenantId: integer().notNull(), // Explicit tenantId for precise FK control
+    tenantId: integer().notNull(), // FK to core.tenants - tenant isolation
     roleCode: text().notNull(),
     ...nameColumn,
     description: text(),

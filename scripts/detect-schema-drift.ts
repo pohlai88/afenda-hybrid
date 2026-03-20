@@ -1,102 +1,22 @@
 /**
  * Detects schema drift: schema files modified without generating migration.
  * 
- * Checks:
- * 1. Schema file hash comparison (current vs last migration snapshot)
- * 2. Uncommitted schema changes
- * 3. Orphaned changes (schema modified but no new migration)
+ * Uses drizzle-kit check to detect drift between schema and migrations.
+ * Also checks for uncommitted schema changes via git.
  */
 
-import * as fs from "fs";
 import * as path from "path";
-import { createHash } from "crypto";
 import { execSync } from "child_process";
 
 const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
-const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
 
 const allowDrift = process.argv.includes("--allow-drift");
-const quick = process.argv.includes("--quick");
 
 interface DriftDetectionResult {
   hasDrift: boolean;
-  driftedFiles: string[];
   uncommittedChanges: string[];
+  drizzleKitOutput: string;
   recommendation: string;
-}
-
-function getLastMigration(migrationsDir: string): { name: string; snapshotPath: string } | null {
-  if (!fs.existsSync(migrationsDir)) {
-    return null;
-  }
-  
-  const entries = fs.readdirSync(migrationsDir, { withFileTypes: true })
-    .filter(e => e.isDirectory())
-    .map(e => e.name)
-    .sort()
-    .reverse(); // Most recent first
-  
-  if (entries.length === 0) {
-    return null;
-  }
-  
-  const lastMigrationName = entries[0];
-  const snapshotPath = path.join(migrationsDir, lastMigrationName, "snapshot.json");
-  
-  if (!fs.existsSync(snapshotPath)) {
-    return null;
-  }
-  
-  return {
-    name: lastMigrationName,
-    snapshotPath,
-  };
-}
-
-async function calculateSchemaHash(schemaDir: string): Promise<string> {
-  const schemaFiles: string[] = [];
-  
-  function walkDir(dir: string, baseDir: string): void {
-    if (!fs.existsSync(dir)) return;
-    
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      const relativePath = path.relative(baseDir, fullPath);
-      
-      if (entry.isDirectory()) {
-        if (entry.name === "node_modules" || entry.name.startsWith(".")) {
-          continue;
-        }
-        walkDir(fullPath, baseDir);
-      } else if (entry.name.endsWith(".ts") && !entry.name.startsWith("_")) {
-        schemaFiles.push(relativePath);
-      }
-    }
-  }
-  
-  walkDir(schemaDir, schemaDir);
-  
-  // Read and hash all schema files
-  const contents = schemaFiles
-    .map(file => {
-      const fullPath = path.join(schemaDir, file);
-      try {
-        return fs.readFileSync(fullPath, "utf-8");
-      } catch {
-        return "";
-      }
-    })
-    .filter(content => content.length > 0);
-  
-  // Sort for deterministic hash
-  const combined = schemaFiles
-    .map((file, i) => `${file}:${contents[i]}`)
-    .sort()
-    .join("\n");
-  
-  return createHash("sha256").update(combined).digest("hex");
 }
 
 function getUncommittedSchemaChanges(schemaDir: string): string[] {
@@ -120,103 +40,71 @@ function getUncommittedSchemaChanges(schemaDir: string): string[] {
         const match = line.match(/^\s*\S+\s+(.+)$/);
         return match ? match[1] : line;
       });
-  } catch (error) {
+  } catch {
     // Git not available or not a git repo - return empty
     return [];
   }
 }
 
-function identifyDriftedFiles(
-  schemaDir: string,
-  snapshotPath?: string
-): string[] {
-  if (!snapshotPath || !fs.existsSync(snapshotPath)) {
-    return [];
-  }
-  
+function runDrizzleKitCheck(): { hasDrift: boolean; output: string } {
   try {
-    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf-8"));
-    const driftedFiles: string[] = [];
+    // Run drizzle-kit check - it exits 0 if no drift, non-zero if drift detected
+    const output = execSync("pnpm drizzle-kit check", {
+      encoding: "utf-8",
+      cwd: process.cwd(),
+      stdio: "pipe",
+    });
     
-    // For drift detection, we primarily rely on git status for uncommitted changes
-    // and hash comparison. The snapshot comparison is informational only.
-    // Tables can be defined in aggregate files (e.g., multiple tables in one .ts file),
-    // so we can't reliably map snapshot tables to individual schema files.
-    
-    // If we reach here, it means the hash comparison detected drift
-    // The uncommitted changes check will provide the specific files
-    
-    return driftedFiles;
+    return {
+      hasDrift: false,
+      output: output.trim(),
+    };
   } catch (error) {
-    return [`Failed to parse snapshot: ${error instanceof Error ? error.message : String(error)}`];
+    // drizzle-kit check exits non-zero when drift is detected
+    const output = error instanceof Error && "stdout" in error 
+      ? String(error.stdout) 
+      : String(error);
+    
+    return {
+      hasDrift: true,
+      output: output.trim(),
+    };
   }
 }
 
 function generateDriftRecommendation(
-  driftedFiles: string[],
   uncommittedChanges: string[]
 ): string {
   if (uncommittedChanges.length > 0) {
     return `Schema drift detected in uncommitted files:\n${uncommittedChanges.map(f => `  - ${f}`).join("\n")}\n\nRun: pnpm db:generate`;
   }
   
-  if (driftedFiles.length > 0) {
-    return `Schema drift detected:\n${driftedFiles.map(f => `  - ${f}`).join("\n")}\n\nThis means schema files were modified but no migration was generated.\nRun: pnpm db:generate`;
-  }
-  
   return "Schema drift detected. Run: pnpm db:generate";
 }
 
 async function detectSchemaDrift(): Promise<DriftDetectionResult> {
-  // 1. Get current schema hash
-  const currentSchemaHash = await calculateSchemaHash(SCHEMA_DIR);
+  // 1. Run drizzle-kit check to detect drift
+  const drizzleCheck = runDrizzleKitCheck();
   
-  // 2. Get last migration snapshot hash
-  const lastMigration = getLastMigration(MIGRATIONS_DIR);
-  let lastSnapshotHash: string | null = null;
+  // 2. Check for uncommitted changes
+  const uncommittedChanges = getUncommittedSchemaChanges(SCHEMA_DIR);
   
-  if (lastMigration) {
-    try {
-      const snapshot = JSON.parse(fs.readFileSync(lastMigration.snapshotPath, "utf-8"));
-      lastSnapshotHash = createHash("sha256")
-        .update(JSON.stringify(snapshot, Object.keys(snapshot).sort()))
-        .digest("hex");
-    } catch (error) {
-      // Snapshot read failed - assume drift
-      return {
-        hasDrift: true,
-        driftedFiles: [`Failed to read snapshot: ${error instanceof Error ? error.message : String(error)}`],
-        uncommittedChanges: [],
-        recommendation: "Check migration snapshot file",
-      };
-    }
-  }
-  
-  // 3. Compare hashes
-  const hasDrift = lastSnapshotHash === null || currentSchemaHash !== lastSnapshotHash;
-  
-  if (!hasDrift) {
+  if (!drizzleCheck.hasDrift) {
     return {
       hasDrift: false,
-      driftedFiles: [],
       uncommittedChanges: [],
+      drizzleKitOutput: drizzleCheck.output,
       recommendation: "No drift detected",
     };
   }
   
-  // 4. Identify which files drifted
-  const driftedFiles = identifyDriftedFiles(SCHEMA_DIR, lastMigration?.snapshotPath);
-  
-  // 5. Check for uncommitted changes
-  const uncommittedChanges = getUncommittedSchemaChanges(SCHEMA_DIR);
-  
-  // 6. Generate recommendation
-  const recommendation = generateDriftRecommendation(driftedFiles, uncommittedChanges);
+  // 3. Generate recommendation
+  const recommendation = generateDriftRecommendation(uncommittedChanges);
   
   return {
     hasDrift: true,
-    driftedFiles,
     uncommittedChanges,
+    drizzleKitOutput: drizzleCheck.output,
     recommendation,
   };
 }
@@ -250,6 +138,11 @@ function main(): void {
     .then((result) => {
       if (!result.hasDrift) {
         console.log("✅ No schema drift detected");
+        console.log();
+        if (result.drizzleKitOutput) {
+          console.log("Drizzle Kit output:");
+          console.log(result.drizzleKitOutput);
+        }
         process.exit(0);
       }
       
@@ -257,17 +150,15 @@ function main(): void {
       console.log(result.recommendation);
       console.log();
       
-      if (result.uncommittedChanges.length > 0) {
-        console.log("Uncommitted schema changes:");
-        for (const file of result.uncommittedChanges) {
-          console.log(`  - ${file}`);
-        }
+      if (result.drizzleKitOutput) {
+        console.log("Drizzle Kit output:");
+        console.log(result.drizzleKitOutput);
         console.log();
       }
       
-      if (result.driftedFiles.length > 0) {
-        console.log("Drifted files:");
-        for (const file of result.driftedFiles) {
+      if (result.uncommittedChanges.length > 0) {
+        console.log("Uncommitted schema changes:");
+        for (const file of result.uncommittedChanges) {
           console.log(`  - ${file}`);
         }
         console.log();

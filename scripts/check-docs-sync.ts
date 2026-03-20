@@ -7,7 +7,7 @@
  * - Column documentation is up to date
  * - Custom SQL documentation matches registry
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -94,7 +94,9 @@ function checkCustomSqlDocs(): void {
     return;
   }
   
-  const registry = JSON.parse(fs.readFileSync(registryPath, "utf-8"));
+  const registry = JSON.parse(fs.readFileSync(registryPath, "utf-8")) as {
+    entries?: Record<string, { purpose?: string }>;
+  };
   const docContent = fs.readFileSync(customSqlMdPath, "utf-8");
   
   // Check that all registry entries are documented
@@ -105,7 +107,7 @@ function checkCustomSqlDocs(): void {
         rule: "undocumented-custom-sql",
         message: `Custom SQL "${id}" is not documented in CUSTOM_SQL.md`,
         severity: "warning",
-        suggestion: `Add documentation section for ${id}: ${(entry as any).purpose}`,
+        suggestion: `Add documentation section for ${id}: ${entry.purpose ?? "(see registry)"}`,
       });
     }
   }

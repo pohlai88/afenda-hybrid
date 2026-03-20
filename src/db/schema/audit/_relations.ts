@@ -1,6 +1,6 @@
 import { defineRelations } from "drizzle-orm";
 import { auditTrail } from "./auditTrail";
-import { retentionPolicies } from "./retentionPolicy";
+import { retentionPolicies, retentionExecutions } from "./retentionPolicy";
 import { tenants } from "../core/tenants";
 import { users } from "../security/users";
 import { servicePrincipals } from "../security/servicePrincipals";
@@ -15,7 +15,7 @@ import { servicePrincipals } from "../security/servicePrincipals";
  * check actorType to determine the correct entity.
  */
 export const auditRelations = defineRelations(
-  { auditTrail, retentionPolicies, tenants, users, servicePrincipals },
+  { auditTrail, retentionPolicies, retentionExecutions, tenants, users, servicePrincipals },
   (r) => ({
     // ═══════════════════════════════════════════════════════════════════════
     // Audit Trail Relations
@@ -72,6 +72,27 @@ export const auditRelations = defineRelations(
         from: r.retentionPolicies.tenantId,
         to: r.tenants.tenantId,
         optional: true,
+      }),
+
+      /**
+       * Execution history for this policy
+       */
+      executions: r.many.retentionExecutions({
+        from: r.retentionPolicies.policyId,
+        to: r.retentionExecutions.policyId,
+      }),
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Retention Execution Relations
+    // ═══════════════════════════════════════════════════════════════════════
+    retentionExecutions: {
+      /**
+       * The policy this execution belongs to
+       */
+      policy: r.one.retentionPolicies({
+        from: r.retentionExecutions.policyId,
+        to: r.retentionPolicies.policyId,
       }),
     },
 

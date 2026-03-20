@@ -18,7 +18,7 @@ export const servicePrincipals = securitySchema.table(
   "service_principals",
   {
     servicePrincipalId: integer().primaryKey().generatedAlwaysAsIdentity(),
-    tenantId: integer().notNull(), // Explicit tenantId for precise FK control
+    tenantId: integer().notNull(), // FK to core.tenants - tenant isolation
     clientId: uuid().notNull().defaultRandom(),
     ...nameColumn,
     description: text(),

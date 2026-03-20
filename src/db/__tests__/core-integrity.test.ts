@@ -4,7 +4,8 @@ import { tenants } from "../schema/core/tenants";
 import { organizations } from "../schema/core/organizations";
 import { regions } from "../schema/core/regions";
 import { locations } from "../schema/core/locations";
-import { sql } from "drizzle-orm";
+import { sql, inArray } from "drizzle-orm";
+import { matchesPgError } from "./pg-error";
 
 /**
  * Integration tests for core schema integrity constraints:
@@ -61,11 +62,11 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
   });
 
   afterAll(async () => {
-    // Cleanup
-    await db.delete(locations).where(sql`${locations.tenantId} IN (${tenant1Id}, ${tenant2Id})`);
-    await db.delete(organizations).where(sql`${organizations.tenantId} IN (${tenant1Id}, ${tenant2Id})`);
+    // Cleanup (use inArray — sql`IN (${a}, ${b})` does not expand to valid SQL in Drizzle)
+    await db.delete(locations).where(inArray(locations.tenantId, [tenant1Id, tenant2Id]));
+    await db.delete(organizations).where(inArray(organizations.tenantId, [tenant1Id, tenant2Id]));
     await db.delete(regions).where(sql`${regions.regionId} = ${regionId}`);
-    await db.delete(tenants).where(sql`${tenants.tenantId} IN (${tenant1Id}, ${tenant2Id})`);
+    await db.delete(tenants).where(inArray(tenants.tenantId, [tenant1Id, tenant2Id]));
   });
 
   describe("cross-tenant parent prevention trigger", () => {
@@ -130,7 +131,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/cross-tenant parent assignment rejected/i);
+      ).rejects.toSatisfy(matchesPgError(/cross-tenant parent assignment rejected/i));
     });
 
     it("rejects cross-tenant parent assignment on UPDATE", async () => {
@@ -168,7 +169,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           .update(organizations)
           .set({ parentOrganizationId: parent.organizationId })
           .where(sql`${organizations.organizationId} = ${child.organizationId}`)
-      ).rejects.toThrow(/cross-tenant parent assignment rejected/i);
+      ).rejects.toSatisfy(matchesPgError(/cross-tenant parent assignment rejected/i));
     });
 
     it("allows null parent (root organization)", async () => {
@@ -208,7 +209,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           name: "Test Lowercase",
           status: "ACTIVE",
         })
-      ).rejects.toThrow(/duplicate key value violates unique constraint/i);
+      ).rejects.toSatisfy(matchesPgError(/duplicate key value violates unique constraint/i));
     });
 
     it("prevents duplicate region codes with different cases", async () => {
@@ -228,7 +229,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           regionType: "COUNTRY",
           status: "ACTIVE",
         })
-      ).rejects.toThrow(/duplicate key value violates unique constraint/i);
+      ).rejects.toSatisfy(matchesPgError(/duplicate key value violates unique constraint/i));
     });
 
     it("prevents duplicate organization codes within tenant with different cases", async () => {
@@ -254,7 +255,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/duplicate key value violates unique constraint/i);
+      ).rejects.toSatisfy(matchesPgError(/duplicate key value violates unique constraint/i));
     });
 
     it("allows same code in different tenants", async () => {
@@ -398,7 +399,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/violates check constraint "chk_locations_latitude"/i);
+      ).rejects.toSatisfy(matchesPgError(/violates check constraint "chk_locations_latitude"/i));
     });
 
     it("rejects latitude < -90", async () => {
@@ -413,7 +414,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/violates check constraint "chk_locations_latitude"/i);
+      ).rejects.toSatisfy(matchesPgError(/violates check constraint "chk_locations_latitude"/i));
     });
 
     it("rejects longitude > 180", async () => {
@@ -428,7 +429,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/violates check constraint "chk_locations_longitude"/i);
+      ).rejects.toSatisfy(matchesPgError(/violates check constraint "chk_locations_longitude"/i));
     });
 
     it("rejects longitude < -180", async () => {
@@ -443,7 +444,7 @@ describe.skipIf(!process.env.DATABASE_URL)("Core Schema Integrity Tests", () => 
           createdBy: 1,
           updatedBy: 1,
         })
-      ).rejects.toThrow(/violates check constraint "chk_locations_longitude"/i);
+      ).rejects.toSatisfy(matchesPgError(/violates check constraint "chk_locations_longitude"/i));
     });
 
     it("accepts null coordinates", async () => {

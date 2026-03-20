@@ -1,5 +1,8 @@
 import { defineRelations } from "drizzle-orm";
 import { tenants } from "./tenants";
+import { currencies } from "./currencies";
+import { legalEntities } from "./legalEntities";
+import { costCenters } from "./costCenters";
 import { organizations } from "./organizations";
 import { regions } from "./regions";
 import { locations } from "./locations";
@@ -7,9 +10,10 @@ import { users } from "../security/users";
 import { roles } from "../security/roles";
 import { servicePrincipals } from "../security/servicePrincipals";
 import { employees } from "../hr/fundamentals/employees";
+import { departments } from "../hr/fundamentals/departments";
 
 export const coreRelations = defineRelations(
-  { tenants, users, employees, organizations, regions, locations, roles, servicePrincipals },
+  { tenants, currencies, legalEntities, costCenters, users, employees, departments, organizations, regions, locations, roles, servicePrincipals },
   (r) => ({
     tenants: {
       users: r.many.users({
@@ -19,6 +23,10 @@ export const coreRelations = defineRelations(
       employees: r.many.employees({
         from: r.tenants.tenantId,
         to: r.employees.tenantId,
+      }),
+      departments: r.many.departments({
+        from: r.tenants.tenantId,
+        to: r.departments.tenantId,
       }),
       organizations: r.many.organizations({
         from: r.tenants.tenantId,
@@ -36,6 +44,51 @@ export const coreRelations = defineRelations(
         from: r.tenants.tenantId,
         to: r.servicePrincipals.tenantId,
       }),
+      legalEntities: r.many.legalEntities({
+        from: r.tenants.tenantId,
+        to: r.legalEntities.tenantId,
+      }),
+      costCenters: r.many.costCenters({
+        from: r.tenants.tenantId,
+        to: r.costCenters.tenantId,
+      }),
+    },
+    currencies: {},
+    legalEntities: {
+      tenant: r.one.tenants({
+        from: r.legalEntities.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      defaultCurrency: r.one.currencies({
+        from: r.legalEntities.defaultCurrencyId,
+        to: r.currencies.currencyId,
+        optional: true,
+      }),
+      costCenters: r.many.costCenters({
+        from: r.legalEntities.legalEntityId,
+        to: r.costCenters.legalEntityId,
+      }),
+    },
+    costCenters: {
+      tenant: r.one.tenants({
+        from: r.costCenters.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      legalEntity: r.one.legalEntities({
+        from: r.costCenters.legalEntityId,
+        to: r.legalEntities.legalEntityId,
+        optional: true,
+      }),
+      parent: r.one.costCenters({
+        from: r.costCenters.parentCostCenterId,
+        to: r.costCenters.costCenterId,
+        optional: true,
+        alias: "cost_center_parent",
+      }),
+      children: r.many.costCenters({
+        from: r.costCenters.costCenterId,
+        to: r.costCenters.parentCostCenterId,
+      }),
     },
     organizations: {
       tenant: r.one.tenants({
@@ -50,6 +103,10 @@ export const coreRelations = defineRelations(
       children: r.many.organizations({
         from: r.organizations.organizationId,
         to: r.organizations.parentOrganizationId,
+      }),
+      departments: r.many.departments({
+        from: r.organizations.organizationId,
+        to: r.departments.organizationId,
       }),
     },
     regions: {
@@ -76,6 +133,10 @@ export const coreRelations = defineRelations(
         from: r.locations.regionId,
         to: r.regions.regionId,
         optional: true,
+      }),
+      employees: r.many.employees({
+        from: r.locations.locationId,
+        to: r.employees.locationId,
       }),
     },
   })

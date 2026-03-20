@@ -10,15 +10,47 @@
  * - Bidirectional relations exist where appropriate
  * - Relations reference correct tables
  * 
- * @see docs/ci-gate-analysis.md Gap 6
+ * @see docs/archive/ci-gates/ci-gate-analysis.md Gap 6
  */
 
 import * as fs from "fs";
 import * as path from "path";
-import { analyzeSchema, TableInfo, SchemaInfo } from "./lib/schema-analyzer";
+import { analyzeSchema, TableInfo, SchemaInfo, FKInfo } from "./lib/schema-analyzer";
 
 const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/relations-exceptions.json");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
+
+interface RelationException {
+  table: string;
+  rule: string;
+  reason: string;
+  owner?: string;
+  date?: string;
+}
+
+interface RelationExceptionsConfig {
+  exceptions: RelationException[];
+}
+
+function loadExceptions(): RelationException[] {
+  if (!fs.existsSync(EXCEPTIONS_PATH)) {
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(EXCEPTIONS_PATH, "utf-8");
+    const config = JSON.parse(content) as RelationExceptionsConfig;
+    return config.exceptions || [];
+  } catch {
+    return [];
+  }
+}
+
+function isExcepted(exceptions: RelationException[], table: string, rule: string): boolean {
+  return exceptions.some(e => e.table === table && e.rule === rule);
+}
+
+const exceptions = loadExceptions();
 
 interface RelationIssue {
   file: string;
@@ -116,7 +148,7 @@ function checkForeignKeyRelations(table: TableInfo, schema: SchemaInfo): void {
 function checkPolymorphicFkRelations(
   table: TableInfo, 
   schema: SchemaInfo, 
-  fk: any, 
+  fk: FKInfo, 
   relationsContent: string
 ): void {
   // For polymorphic FKs, check if ALL possible target tables have relations
@@ -186,15 +218,18 @@ function checkBidirectionalRelations(schema: SchemaInfo): void {
   // For each r.one relation, check if there's a corresponding r.many
   for (const oneRel of oneRelations) {
     if (!manyRelations.includes(oneRel)) {
-      issues.push({
-        file: `src/db/schema/${schema.name}/_relations.ts`,
-        line: 1,
-        table: oneRel,
-        rule: "missing-bidirectional-relation",
-        message: `One-to-many relation to ${oneRel} may be missing inverse many-to-one relation`,
-        severity: "info",
-        suggestion: `Consider adding inverse relation: ${oneRel}: { someCollection: r.many.${schema.name}(...) }`,
-      });
+      // Check if this is excepted (foundational tables don't need inverse relations)
+      if (!isExcepted(exceptions, oneRel, "missing-bidirectional-relation")) {
+        issues.push({
+          file: `src/db/schema/${schema.name}/_relations.ts`,
+          line: 1,
+          table: oneRel,
+          rule: "missing-bidirectional-relation",
+          message: `One-to-many relation to ${oneRel} may be missing inverse many-to-one relation`,
+          severity: "info",
+          suggestion: `Consider adding inverse relation: ${oneRel}: { someCollection: r.many.${schema.name}(...) }`,
+        });
+      }
     }
   }
 }

@@ -12,13 +12,13 @@
  * - Changing enum values (removing)
  * - Changing FK constraints
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
-import { analyzeSchema, TableInfo, SchemaInfo } from "./lib/schema-analyzer";
+import { analyzeSchema, TableInfo } from "./lib/schema-analyzer";
 
 const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
@@ -36,7 +36,16 @@ interface BreakingChange {
 
 const changes: BreakingChange[] = [];
 
-function getLastMigrationSnapshot(): any | null {
+/** Minimal Drizzle snapshot shape used for column/table comparison */
+interface DrizzleSnapshotTable {
+  columns?: Record<string, unknown>;
+}
+
+interface DrizzleSnapshot {
+  tables?: Record<string, DrizzleSnapshotTable>;
+}
+
+function getLastMigrationSnapshot(): DrizzleSnapshot | null {
   if (!fs.existsSync(MIGRATIONS_DIR)) {
     return null;
   }
@@ -58,7 +67,7 @@ function getLastMigrationSnapshot(): any | null {
   }
   
   try {
-    return JSON.parse(fs.readFileSync(snapshotPath, "utf-8"));
+    return JSON.parse(fs.readFileSync(snapshotPath, "utf-8")) as DrizzleSnapshot;
   } catch {
     return null;
   }
@@ -211,7 +220,7 @@ function compareSchemaSnapshots(): void {
   
   // Compare with snapshot
   if (lastSnapshot.tables) {
-    for (const [tableName, snapshotTable] of Object.entries(lastSnapshot.tables as Record<string, any>)) {
+    for (const [tableName, snapshotTable] of Object.entries(lastSnapshot.tables)) {
       // Extract schema and table name from snapshot format
       const parts = tableName.split(".");
       const schemaName = parts.length > 1 ? parts[0] : "public";

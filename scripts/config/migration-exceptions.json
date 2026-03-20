@@ -1,0 +1,38 @@
+{
+  "$schema": "./migration-exceptions.schema.json",
+  "description": "Exceptions for migration validation. Custom SQL migrations that are intentionally hand-written.",
+  "exceptions": [
+    {
+      "migration": "20260320041632_add_audit_trail_enhancements",
+      "rule": "possible-hand-written",
+      "reason": "Contains custom SQL for partitioning, triggers, and functions that cannot be expressed in Drizzle ORM",
+      "customSqlIds": ["CSQL-001", "CSQL-002", "CSQL-003", "CSQL-004", "CSQL-005", "CSQL-007"],
+      "owner": "dba-team",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320050117_attach_audit_triggers",
+      "rule": "possible-hand-written",
+      "reason": "Contains custom SQL for audit trigger function and trigger attachments",
+      "customSqlIds": ["CSQL-006", "CSQL-010"],
+      "owner": "dba-team",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320050200_remove_duplicate_employee_fk",
+      "rule": "possible-hand-written",
+      "reason": "Manual FK cleanup migration - removes duplicate foreign key constraint",
+      "customSqlIds": [],
+      "owner": "dba-team",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320052948_fix_audit_trigger_columns",
+      "rule": "possible-hand-written",
+      "reason": "Fix for audit trigger function column name mismatches with schema",
+      "customSqlIds": ["CSQL-011"],
+      "owner": "dba-team",
+      "date": "2026-03-20"
+    }
+  ]
+}

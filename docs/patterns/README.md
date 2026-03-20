@@ -256,8 +256,9 @@ pnpm check:all
 
 ### Documentation
 - [DB-First Guideline](../architecture/01-db-first-guideline.md)
-- [CI Gate Analysis](../ci-gate-analysis.md)
-- [Schema Design Principles](../architecture/schema-design-principles.md)
+- [CI gates (maintained)](../CI_GATES.md)
+- [Archived: CI gate analysis](../archive/ci-gates/ci-gate-analysis.md)
+- [Architecture overview](../architecture/00-overview.md)
 
 ### Tools
 - [Drizzle ORM](https://orm.drizzle.team/)

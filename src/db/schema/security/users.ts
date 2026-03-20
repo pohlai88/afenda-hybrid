@@ -18,7 +18,7 @@ export const users = securitySchema.table(
   "users",
   {
     userId: integer().primaryKey().generatedAlwaysAsIdentity(),
-    tenantId: integer().notNull(), // Explicit tenantId for precise FK control (not using mixin)
+    tenantId: integer().notNull(), // FK to core.tenants - tenant isolation
     email: text().notNull(),
     displayName: text().notNull(),
     status: userStatusEnum().notNull().default("PENDING_VERIFICATION"),

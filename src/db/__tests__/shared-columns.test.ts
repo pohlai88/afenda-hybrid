@@ -3,7 +3,6 @@ import {
   timestampColumns,
   softDeleteColumns,
   auditColumns,
-  tenantScopedColumns,
   MANDATORY_SHARED_COLUMNS,
   RECOMMENDED_SHARED_COLUMNS,
   ALL_SHARED_FINGERPRINTS,
@@ -17,7 +16,6 @@ describe("Shared Column Mixins", () => {
     });
 
     it("columns are Drizzle column builders", () => {
-      // Drizzle columns are builder objects with specific properties
       expect(typeof timestampColumns.createdAt).toBe("object");
       expect(typeof timestampColumns.updatedAt).toBe("object");
     });
@@ -45,43 +43,33 @@ describe("Shared Column Mixins", () => {
     });
   });
 
-  describe("tenantScopedColumns", () => {
-    it("exports tenantId column", () => {
-      expect(tenantScopedColumns).toHaveProperty("tenantId");
-    });
-
-    it("tenantId is a Drizzle column builder", () => {
-      expect(typeof tenantScopedColumns.tenantId).toBe("object");
-    });
-  });
-
   describe("CI enforcement constants", () => {
     it("MANDATORY_SHARED_COLUMNS includes timestamp columns", () => {
       expect(MANDATORY_SHARED_COLUMNS).toContain("createdAt");
       expect(MANDATORY_SHARED_COLUMNS).toContain("updatedAt");
     });
 
-    it("RECOMMENDED_SHARED_COLUMNS includes optional shared columns", () => {
+    it("RECOMMENDED_SHARED_COLUMNS includes optional shared columns (not tenantId)", () => {
       expect(RECOMMENDED_SHARED_COLUMNS).toContain("deletedAt");
       expect(RECOMMENDED_SHARED_COLUMNS).toContain("createdBy");
       expect(RECOMMENDED_SHARED_COLUMNS).toContain("updatedBy");
-      expect(RECOMMENDED_SHARED_COLUMNS).toContain("tenantId");
+      // tenantId is NOT in RECOMMENDED - it must be explicit with foreignKey()
+      expect(RECOMMENDED_SHARED_COLUMNS).not.toContain("tenantId");
     });
 
-    it("ALL_SHARED_FINGERPRINTS has entries for all columns", () => {
+    it("ALL_SHARED_FINGERPRINTS has entries for mixin columns", () => {
       expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("createdAt");
       expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("updatedAt");
       expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("deletedAt");
       expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("createdBy");
       expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("updatedBy");
-      expect(ALL_SHARED_FINGERPRINTS).toHaveProperty("tenantId");
+      // tenantId is NOT in fingerprints - it's explicit per table
+      expect(ALL_SHARED_FINGERPRINTS).not.toHaveProperty("tenantId");
     });
 
     it("fingerprints have correct format", () => {
       expect(ALL_SHARED_FINGERPRINTS.createdAt).toContain("timestamp");
       expect(ALL_SHARED_FINGERPRINTS.createdAt).toContain("notNull");
-      expect(ALL_SHARED_FINGERPRINTS.tenantId).toContain("integer");
-      expect(ALL_SHARED_FINGERPRINTS.tenantId).toContain("fk");
     });
   });
 });

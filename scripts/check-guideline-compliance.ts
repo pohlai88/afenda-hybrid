@@ -144,7 +144,7 @@ function checkTableFile(filePath: string): void {
   }
 
   // Check for index on tenantId for tenant-scoped tables
-  if (content.includes("tenantScopedColumns") || content.includes("tenantId:")) {
+  if (content.includes("tenantId:") || content.includes("tenantId =")) {
     if (!content.includes("idx_") || !content.match(/index\([^)]*\)\.on\([^)]*tenantId/)) {
       // Check if there's any index mentioning tenant
       if (!content.includes("tenant")) {

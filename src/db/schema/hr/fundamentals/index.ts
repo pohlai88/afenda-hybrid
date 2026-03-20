@@ -1,2 +1,3 @@
 export * from "./employees";
-export * from "./_relations";
+export * from "./departments";
+export * from "./positions";

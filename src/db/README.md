@@ -182,6 +182,11 @@ The test database:
 
 See [docs/testing/DOCKER_TEST_SETUP.md](../../docs/testing/DOCKER_TEST_SETUP.md) for detailed documentation.
 
+## Documentation index
+
+- **[docs/README.md](../../docs/README.md)** — map of maintained docs (schema lockdown, CI gates, quick start)
+- **[docs/DOCUMENTATION_CLEANUP_PLAN.md](../../docs/DOCUMENTATION_CLEANUP_PLAN.md)** — plan to archive or merge legacy reports
+
 ## Guidelines
 
 Full documentation: [docs/architecture/01-db-first-guideline.md](../../docs/architecture/01-db-first-guideline.md)

@@ -6,7 +6,7 @@
  * - Properly aligned with column types
  * - Exported for use in application code
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -38,7 +38,7 @@ function findLineNumber(content: string, searchStr: string): number {
   return 1;
 }
 
-function checkBrandedIdConsistency(table: TableInfo, schema: SchemaInfo): void {
+function checkBrandedIdConsistency(table: TableInfo, _schema: SchemaInfo): void {
   const content = fs.readFileSync(table.file, "utf-8");
   
   // Find primary key column
@@ -109,7 +109,7 @@ function checkBrandedIdConsistency(table: TableInfo, schema: SchemaInfo): void {
   }
 }
 
-function checkForeignKeyBrandedIds(table: TableInfo, schema: SchemaInfo, allSchemas: SchemaInfo[]): void {
+function checkForeignKeyBrandedIds(table: TableInfo, _schema: SchemaInfo, _allSchemas: SchemaInfo[]): void {
   const content = fs.readFileSync(table.file, "utf-8");
   
   // Find FK columns

@@ -1,0 +1,34 @@
+{
+  "$schema": "./relations-exceptions.schema.json",
+  "description": "Exceptions for relations completeness checks. Inverse relations from foundational tables to domain tables are intentionally omitted to avoid coupling.",
+  "exceptions": [
+    {
+      "table": "tenants",
+      "rule": "missing-bidirectional-relation",
+      "reason": "Tenants is a foundational table - inverse relations to domain tables would create tight coupling",
+      "owner": "core-team",
+      "date": "2026-03-20"
+    },
+    {
+      "table": "users",
+      "rule": "missing-bidirectional-relation",
+      "reason": "Users is a foundational table - inverse relations to audit/domain tables would create tight coupling",
+      "owner": "security-team",
+      "date": "2026-03-20"
+    },
+    {
+      "table": "roles",
+      "rule": "missing-bidirectional-relation",
+      "reason": "Roles is a foundational table - inverse relations would create tight coupling",
+      "owner": "security-team",
+      "date": "2026-03-20"
+    },
+    {
+      "table": "servicePrincipals",
+      "rule": "missing-bidirectional-relation",
+      "reason": "Service principals is a foundational table - inverse relations to audit tables would create tight coupling",
+      "owner": "security-team",
+      "date": "2026-03-20"
+    }
+  ]
+}

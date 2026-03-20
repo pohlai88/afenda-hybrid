@@ -7,7 +7,7 @@
  * - Policy names follow conventions
  * - All CRUD operations are covered
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -48,7 +48,7 @@ function findLineNumber(content: string, searchStr: string): number {
   return 1;
 }
 
-function checkRlsEnabled(table: TableInfo, schema: SchemaInfo): void {
+function checkRlsEnabled(table: TableInfo, _schema: SchemaInfo): void {
   if (RLS_EXEMPT_TABLES.includes(table.name)) {
     return;
   }
@@ -78,7 +78,7 @@ function checkRlsEnabled(table: TableInfo, schema: SchemaInfo): void {
   }
 }
 
-function checkRlsPolicies(table: TableInfo, schema: SchemaInfo): void {
+function checkRlsPolicies(table: TableInfo, _schema: SchemaInfo): void {
   const content = fs.readFileSync(table.file, "utf-8");
   
   // Find all policy definitions
@@ -125,7 +125,7 @@ function checkRlsPolicies(table: TableInfo, schema: SchemaInfo): void {
         rule: "policy-no-tenant",
         message: "RLS policy doesn't reference tenant_id",
         severity: "warning",
-        suggestion: "Add tenant_id check: using(tenant_id = current_setting('app.tenant_id')::integer)",
+        suggestion: "Add tenant_id check: using(tenant_id = current_setting('afenda.tenant_id')::integer)",
       });
     }
   }

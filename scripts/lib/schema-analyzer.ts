@@ -81,7 +81,6 @@ export function walkDir(dir: string, filter?: (file: string) => boolean): string
 
 export function parseTableFile(filePath: string): TableInfo | null {
   const content = fs.readFileSync(filePath, "utf-8");
-  const lines = content.split("\n");
 
   const tableMatch = content.match(/\.table\(\s*["'](\w+)["']/);
   if (!tableMatch) return null;
@@ -94,7 +93,9 @@ export function parseTableFile(filePath: string): TableInfo | null {
   const foreignKeys: FKInfo[] = [];
 
   // Parse columns
-  const columnRegex = /(\w+):\s*(integer|text|varchar|boolean|timestamp|date|jsonb|json|bigint|smallint|real|doublePrecision|numeric|uuid|inet|cidr)\([^)]*\)/g;
+  // Include *Enum() builders (e.g. actorTypeEnum) so polymorphic/discriminator checks see those columns
+  const columnRegex =
+    /(\w+):\s*(integer|text|varchar|boolean|timestamp|date|jsonb|json|bigint|smallint|real|doublePrecision|numeric|uuid|inet|cidr|\w+Enum)\([^)]*\)/g;
   let match;
   while ((match = columnRegex.exec(content)) !== null) {
     const lineNum = content.substring(0, match.index).split("\n").length;
@@ -174,10 +175,12 @@ export function parseTableFile(filePath: string): TableInfo | null {
     columns,
     indexes,
     foreignKeys,
-    hasTimestamps: content.includes("timestampColumns") || 
-                   (content.includes("createdAt") && content.includes("updatedAt")),
+    hasTimestamps:
+      content.includes("timestampColumns") ||
+      content.includes("appendOnlyTimestampColumns") ||
+      (content.includes("createdAt") && content.includes("updatedAt")),
     hasSoftDelete: content.includes("softDeleteColumns") || content.includes("deletedAt"),
-    hasTenantScope: content.includes("tenantScopedColumns") || content.includes("tenantId:"),
+    hasTenantScope: content.includes("tenantId:") || content.includes("tenantId ="),
     hasAuditColumns: content.includes("auditColumns") || 
                      (content.includes("createdBy") && content.includes("updatedBy")),
     hasZodSchemas: {
@@ -258,4 +261,41 @@ export function generateReport(schemas: SchemaInfo[]): string {
   }
   
   return report;
+}
+
+// CLI entry point (ESM compatible)
+async function main() {
+  const schemaDir = path.join(process.cwd(), "src/db/schema");
+  
+  console.log("🔍 Analyzing schema...\n");
+  
+  const schemas = analyzeSchema(schemaDir);
+  const report = generateReport(schemas);
+  
+  console.log(report);
+  
+  // Summary statistics
+  const totalTables = schemas.reduce((sum, s) => sum + s.tables.length, 0);
+  const totalEnums = schemas.reduce((sum, s) => sum + s.enums.length, 0);
+  const tablesWithTenantScope = schemas.reduce(
+    (sum, s) => sum + s.tables.filter(t => t.hasTenantScope).length,
+    0
+  );
+  const tablesWithTimestamps = schemas.reduce(
+    (sum, s) => sum + s.tables.filter(t => t.hasTimestamps).length,
+    0
+  );
+  
+  console.log("## Summary\n");
+  console.log(`- Total schemas: ${schemas.length}`);
+  console.log(`- Total tables: ${totalTables}`);
+  console.log(`- Total enums: ${totalEnums}`);
+  console.log(`- Tables with tenant scope: ${tablesWithTenantScope}/${totalTables}`);
+  console.log(`- Tables with timestamps: ${tablesWithTimestamps}/${totalTables}`);
+  console.log();
+}
+
+// Run if executed directly
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('schema-analyzer.ts')) {
+  main().catch(console.error);
 }

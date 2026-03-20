@@ -12,7 +12,7 @@
  * - Tier 2 (Operational): audit, observability
  * - Tier 3 (Domain): hr, finance, projects, etc.
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -20,7 +20,48 @@ import * as path from "path";
 import { analyzeSchema, SchemaInfo, TableInfo } from "./lib/schema-analyzer";
 
 const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/cross-schema-exceptions.json");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
+
+interface CrossSchemaException {
+  sourceSchema: string;
+  sourceTable: string;
+  targetSchema: string;
+  targetTable: string;
+  rule: string;
+  reason: string;
+  owner?: string;
+  date?: string;
+}
+
+interface CrossSchemaExceptionsConfig {
+  exceptions: CrossSchemaException[];
+}
+
+function loadExceptions(): CrossSchemaException[] {
+  if (!fs.existsSync(EXCEPTIONS_PATH)) {
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(EXCEPTIONS_PATH, "utf-8");
+    const config = JSON.parse(content) as CrossSchemaExceptionsConfig;
+    return config.exceptions || [];
+  } catch {
+    return [];
+  }
+}
+
+function isExcepted(exceptions: CrossSchemaException[], ref: CrossSchemaRef, rule: string): boolean {
+  return exceptions.some(e => 
+    e.sourceSchema === ref.sourceSchema &&
+    e.sourceTable === ref.sourceTable &&
+    e.targetSchema === ref.targetSchema &&
+    e.targetTable === ref.targetTable &&
+    e.rule === rule
+  );
+}
+
+const exceptions = loadExceptions();
 
 // Schema tier definitions
 const SCHEMA_TIERS: Record<string, number> = {
@@ -63,7 +104,6 @@ const crossSchemaRefs: CrossSchemaRef[] = [];
 
 function extractCrossSchemaRefs(table: TableInfo, schema: SchemaInfo): void {
   const content = fs.readFileSync(table.file, "utf-8");
-  const lines = content.split("\n");
   
   // Find imports from other schemas
   const importRegex = /from\s+["']\.\.\/(\w+)\/(\w+)["']/g;
@@ -71,7 +111,6 @@ function extractCrossSchemaRefs(table: TableInfo, schema: SchemaInfo): void {
   
   while ((match = importRegex.exec(content)) !== null) {
     const targetSchema = match[1];
-    const targetFile = match[2];
     
     if (targetSchema !== schema.name && targetSchema !== "_shared") {
       // Find which table is being referenced
@@ -154,20 +193,22 @@ function checkTierHierarchy(): void {
       });
     }
     
-    // Same tier cross-references should be documented
+    // Same tier cross-references should be documented (unless excepted)
     if (sourceTier === targetTier && ref.sourceSchema !== ref.targetSchema) {
-      issues.push({
-        file: ref.file,
-        line: ref.line,
-        sourceSchema: ref.sourceSchema,
-        sourceTable: ref.sourceTable,
-        targetSchema: ref.targetSchema,
-        targetTable: ref.targetTable,
-        rule: "same-tier-reference",
-        message: `Same-tier cross-schema reference from "${ref.sourceSchema}.${ref.sourceTable}" to "${ref.targetSchema}.${ref.targetTable}"`,
-        severity: "info",
-        suggestion: "Document this cross-schema dependency in the schema README or _relations.ts",
-      });
+      if (!isExcepted(exceptions, ref, "same-tier-reference")) {
+        issues.push({
+          file: ref.file,
+          line: ref.line,
+          sourceSchema: ref.sourceSchema,
+          sourceTable: ref.sourceTable,
+          targetSchema: ref.targetSchema,
+          targetTable: ref.targetTable,
+          rule: "same-tier-reference",
+          message: `Same-tier cross-schema reference from "${ref.sourceSchema}.${ref.sourceTable}" to "${ref.targetSchema}.${ref.targetTable}"`,
+          severity: "info",
+          suggestion: "Document this cross-schema dependency in the schema README or _relations.ts",
+        });
+      }
     }
   }
 }
@@ -283,31 +324,43 @@ function checkReferenceDocumentation(): void {
     const refLine = ref.line - 1;
     
     let hasComment = false;
-    for (let i = refLine - 1; i >= 0 && i >= refLine - 5; i--) {
-      const line = lines[i].trim();
-      if (line.includes("//") && (line.includes("cross-schema") || line.includes("FK to") || line.includes("references"))) {
-        hasComment = true;
-        break;
-      }
-      if (line.startsWith("/**") || line.includes("*/")) {
-        hasComment = true;
-        break;
+    
+    // Check the same line first (inline comment)
+    const currentLine = lines[refLine]?.trim() || "";
+    if (currentLine.includes("//") && (currentLine.includes("cross-schema") || currentLine.includes("FK to") || currentLine.includes("references"))) {
+      hasComment = true;
+    }
+    
+    // Check lines before the reference (up to 5 lines)
+    if (!hasComment) {
+      for (let i = refLine - 1; i >= 0 && i >= refLine - 5; i--) {
+        const line = lines[i].trim();
+        if (line.includes("//") && (line.includes("cross-schema") || line.includes("FK to") || line.includes("references"))) {
+          hasComment = true;
+          break;
+        }
+        if (line.startsWith("/**") || line.includes("*/")) {
+          hasComment = true;
+          break;
+        }
       }
     }
     
     if (!hasComment && ref.sourceSchema !== ref.targetSchema) {
-      issues.push({
-        file: ref.file,
-        line: ref.line,
-        sourceSchema: ref.sourceSchema,
-        sourceTable: ref.sourceTable,
-        targetSchema: ref.targetSchema,
-        targetTable: ref.targetTable,
-        rule: "undocumented-cross-ref",
-        message: `Cross-schema reference to "${ref.targetSchema}.${ref.targetTable}" is not documented`,
-        severity: "info",
-        suggestion: `Add comment: // FK to ${ref.targetSchema}.${ref.targetTable} - <reason>`,
-      });
+      if (!isExcepted(exceptions, ref, "undocumented-cross-ref")) {
+        issues.push({
+          file: ref.file,
+          line: ref.line,
+          sourceSchema: ref.sourceSchema,
+          sourceTable: ref.sourceTable,
+          targetSchema: ref.targetSchema,
+          targetTable: ref.targetTable,
+          rule: "undocumented-cross-ref",
+          message: `Cross-schema reference to "${ref.targetSchema}.${ref.targetTable}" is not documented`,
+          severity: "info",
+          suggestion: `Add comment: // FK to ${ref.targetSchema}.${ref.targetTable} - <reason>`,
+        });
+      }
     }
   }
 }

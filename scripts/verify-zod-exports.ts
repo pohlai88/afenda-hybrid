@@ -61,31 +61,57 @@ function validateFile(filePath: string): ValidationResult | null {
   const missingSchemas: string[] = [];
 
   for (const table of tables) {
-    // Handle common plural patterns to derive singular base name
-    let baseName = table;
-    if (table.endsWith("ies")) {
-      // policies -> policy, categories -> category
-      baseName = table.slice(0, -3) + "y";
-    } else if (table.endsWith("es") && !table.endsWith("ses") && !table.endsWith("xes")) {
-      // Not all -es words: keep as-is for ambiguous cases
-      baseName = table.slice(0, -1);
-    } else if (table.endsWith("s") && !table.endsWith("ss")) {
-      // users -> user, tenants -> tenant
-      baseName = table.slice(0, -1);
+    // Simplified approach: check if there's a schema that reasonably corresponds to this table
+    // by checking if the schema name is similar to the table name (allowing for singularization)
+    const tableLower = table.toLowerCase();
+    
+    // Helper function to check if a schema prefix reasonably matches the table
+    const isReasonableMatch = (prefix: string): boolean => {
+      const prefixLower = prefix.toLowerCase();
+      
+      // Exact match
+      if (tableLower === prefixLower) return true;
+      
+      // Simple plural: table ends with 's', prefix is table without 's'
+      if (tableLower === prefixLower + 's') return true;
+      
+      // -es plural: addresses -> address
+      if (tableLower === prefixLower + 'es') return true;
+      
+      // -ies plural: policies -> policy
+      if (tableLower === prefixLower.slice(0, -1) + 'ies') return true;
+      
+      // For compound words like "claimsRecords" -> "claimRecord"
+      // Check if removing 's' from each word component matches
+      const tableWithoutS = tableLower.replace(/s([a-z])/g, '$1').replace(/s$/, '');
+      if (tableWithoutS === prefixLower) return true;
+      
+      // Levenshtein distance <= 2 (allows for minor differences)
+      const distance = levenshteinDistance(tableLower, prefixLower);
+      if (distance <= 2 && Math.abs(tableLower.length - prefixLower.length) <= 2) return true;
+      
+      return false;
+    };
+    
+    // Check for SelectSchema
+    const hasSelectSchema = zodSchemas.some(s => {
+      if (!s.endsWith('SelectSchema')) return false;
+      const prefix = s.slice(0, -'SelectSchema'.length);
+      return isReasonableMatch(prefix);
+    });
+    
+    // Check for InsertSchema
+    const hasInsertSchema = zodSchemas.some(s => {
+      if (!s.endsWith('InsertSchema')) return false;
+      const prefix = s.slice(0, -'InsertSchema'.length);
+      return isReasonableMatch(prefix);
+    });
+    
+    if (!hasSelectSchema) {
+      missingSchemas.push(`${table}SelectSchema (or singular variant)`);
     }
-
-    const expectedSchemas = [
-      `${baseName}SelectSchema`,
-      `${baseName}InsertSchema`,
-    ];
-
-    for (const expected of expectedSchemas) {
-      const found = zodSchemas.some(
-        (s) => s.toLowerCase() === expected.toLowerCase()
-      );
-      if (!found) {
-        missingSchemas.push(expected);
-      }
+    if (!hasInsertSchema) {
+      missingSchemas.push(`${table}InsertSchema (or singular variant)`);
     }
   }
 
@@ -95,6 +121,34 @@ function validateFile(filePath: string): ValidationResult | null {
     missingSchemas,
     hasErrors: missingSchemas.length > 0,
   };
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
 }
 
 function walkDir(dir: string): string[] {

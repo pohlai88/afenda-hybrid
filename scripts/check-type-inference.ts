@@ -6,7 +6,7 @@
  * - $inferInsert types
  * - Zod schemas (createSelectSchema, createInsertSchema)
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -32,7 +32,7 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function checkTypeExports(table: TableInfo, schema: SchemaInfo): void {
+function checkTypeExports(table: TableInfo, _schema: SchemaInfo): void {
   const content = fs.readFileSync(table.file, "utf-8");
   const tableName = table.name;
   const typeName = capitalize(tableName);

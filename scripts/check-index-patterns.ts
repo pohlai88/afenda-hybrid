@@ -9,10 +9,9 @@
  * - Partial indexes for soft-delete tables
  * - Index coverage for common filter patterns
  * 
- * @see docs/ci-gate-analysis.md Gap 4
+ * @see docs/archive/ci-gates/ci-gate-analysis.md Gap 4
  */
 
-import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, TableInfo, SchemaInfo } from "./lib/schema-analyzer";
 
@@ -31,15 +30,20 @@ interface IndexIssue {
 
 const issues: IndexIssue[] = [];
 
-function checkCompositeIndexPatterns(table: TableInfo, schema: SchemaInfo): void {
-  const content = fs.readFileSync(table.file, "utf-8");
-  
+/** Tables where generic `status` + timestamp should not imply tenant+workflow composite index */
+const COMPOSITE_INDEX_STATUS_FALSE_POSITIVES = new Set([
+  "retention_policies",
+  "service_principals",
+]);
+
+function checkCompositeIndexPatterns(table: TableInfo, _schema: SchemaInfo): void {
   // Skip non-tenant-scoped tables
   if (!table.hasTenantScope) return;
   
-  // Check for operation/status columns
+  // Check for operation/status columns (status alone is too broad — see exempt list)
   const hasOperationCol = table.columns.some(c => 
-    c.name === "operation" || c.name === "status" || c.name === "type" || c.name === "state"
+    c.name === "operation" || c.name === "type" || c.name === "state" ||
+    (c.name === "status" && !COMPOSITE_INDEX_STATUS_FALSE_POSITIVES.has(table.name))
   );
   
   // Check for timestamp columns
@@ -130,8 +134,6 @@ function checkTenantIndexLeadingColumn(table: TableInfo): void {
 function checkPartialIndexesForSoftDelete(table: TableInfo): void {
   if (!table.hasSoftDelete) return;
   
-  const content = fs.readFileSync(table.file, "utf-8");
-  
   // Check unique indexes
   const uniqueIndexes = table.indexes.filter(i => i.isUnique);
   
@@ -151,8 +153,6 @@ function checkPartialIndexesForSoftDelete(table: TableInfo): void {
 }
 
 function checkCorrelationIndexes(table: TableInfo): void {
-  const content = fs.readFileSync(table.file, "utf-8");
-  
   // Check for correlation/request ID columns
   const hasCorrelationId = table.columns.some(c => c.name === "correlationId");
   const hasRequestId = table.columns.some(c => c.name === "requestId");
@@ -190,6 +190,24 @@ function checkCorrelationIndexes(table: TableInfo): void {
         message: "Table with requestId should have index for request debugging queries",
         severity: "info",
         suggestion: `Add: index("idx_${table.name}_request").on(t.requestId)`,
+      });
+    }
+  }
+
+  if (hasSessionId) {
+    const hasSessionIndex = table.indexes.some(idx =>
+      idx.columns.some(c => c.toLowerCase().includes("sessionid"))
+    );
+
+    if (!hasSessionIndex) {
+      issues.push({
+        file: table.relativePath,
+        line: 1,
+        table: table.name,
+        rule: "missing-session-index",
+        message: "Table with sessionId should have index for session-scoped queries",
+        severity: "info",
+        suggestion: `Add: index("idx_${table.name}_session").on(t.sessionId)`,
       });
     }
   }

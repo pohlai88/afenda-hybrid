@@ -9,7 +9,7 @@ export default defineConfig({
   // Single entry avoids duplicate table/enum registration (glob would also load index.ts barrels).
   schema: "./src/db/schema/index.ts",
   out: "./src/db/migrations",
-  schemaFilter: ["core", "security", "audit", "hr", "finance"],
+  schemaFilter: ["core", "security", "audit", "hr", "payroll", "benefits", "talent", "learning", "recruitment"],
   entities: {
     roles: true,
   },

@@ -32,7 +32,8 @@ const strictWarnings = process.argv.includes("--strict-warnings") || process.env
 const MANDATORY_SHARED = ["createdAt", "updatedAt"];
 
 // Columns that SHOULD use shared mixins (warning if manual without exception)
-const RECOMMENDED_SHARED = ["deletedAt", "createdBy", "updatedBy", "tenantId"];
+// Note: tenantId is NOT included - it should be defined explicitly with foreignKey()
+const RECOMMENDED_SHARED = ["deletedAt", "createdBy", "updatedBy"];
 
 // Mixin names for each column
 const COLUMN_TO_MIXIN: Record<string, string> = {
@@ -41,7 +42,7 @@ const COLUMN_TO_MIXIN: Record<string, string> = {
   deletedAt: "softDeleteColumns",
   createdBy: "auditColumns",
   updatedBy: "auditColumns",
-  tenantId: "tenantScopedColumns",
+  // tenantId: removed - should be explicit, not a mixin
 };
 
 // Rule names for exceptions
@@ -51,7 +52,7 @@ const COLUMN_TO_RULE: Record<string, string> = {
   deletedAt: "use-softdelete-mixin",
   createdBy: "use-audit-mixin",
   updatedBy: "use-audit-mixin",
-  tenantId: "use-tenant-mixin",
+  // tenantId: removed - should be explicit, not a mixin
 };
 
 interface Exception {
@@ -122,16 +123,6 @@ function isExcepted(exceptions: Exception[], file: string, table: string, column
 function extractTableName(content: string): string | null {
   const match = content.match(/export\s+const\s+(\w+)\s*=\s*\w+\.table\s*\(\s*["'](\w+)["']/);
   return match ? match[2] : null;
-}
-
-function findLineNumber(content: string, searchStr: string): number {
-  const lines = content.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes(searchStr)) {
-      return i + 1;
-    }
-  }
-  return 1;
 }
 
 function getCodeSnippet(content: string, lineNum: number, context: number = 1): string {
@@ -257,11 +248,15 @@ function checkFile(filePath: string, exceptions: Exception[]): void {
   }
 }
 
+// Columns that are intentionally explicit and should not trigger duplicate warnings
+const EXPLICIT_COLUMNS = ["tenantId"];
+
 function detectDuplicatePatterns(): void {
   const fingerprints = new Map<string, ColumnFingerprint[]>();
 
   for (const col of columnFingerprints) {
-    if ([...MANDATORY_SHARED, ...RECOMMENDED_SHARED].includes(col.name)) {
+    // Skip columns that use shared mixins or are intentionally explicit
+    if ([...MANDATORY_SHARED, ...RECOMMENDED_SHARED, ...EXPLICIT_COLUMNS].includes(col.name)) {
       continue;
     }
 

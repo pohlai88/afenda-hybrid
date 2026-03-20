@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
 import { tenants } from "../schema/core/tenants";
 import { sql } from "drizzle-orm";
+import { setSessionContext } from "../utils";
 
 describe("Database Smoke Tests", () => {
   beforeAll(async () => {
@@ -45,11 +46,20 @@ describe("Database Smoke Tests", () => {
   });
 
   it("smoke: session context can be set", async () => {
-    await db.execute(sql`SET LOCAL afenda.tenant_id = '1'`);
-    const result = await db.execute(
-      sql`SELECT current_setting('afenda.tenant_id', true) as tenant_id`
-    );
-    expect(result.rows[0]).toHaveProperty("tenant_id", "1");
+    // Pool may use different connections per execute(); keep SET + read on one connection via a transaction
+    await db.transaction(async (tx) => {
+      await setSessionContext(tx, { tenantId: 1, userId: 42 });
+      
+      const result = await tx.execute(
+        sql`SELECT current_setting('afenda.tenant_id', true) as tenant_id, current_setting('afenda.user_id', true) as user_id`
+      );
+      const row = result.rows[0] as Record<string, string | undefined>;
+      const tenantId = row.tenant_id ?? row.tenantId;
+      const userId = row.user_id ?? row.userId;
+      
+      expect(tenantId).toBe("1");
+      expect(userId).toBe("42");
+    });
   });
 
   it("smoke: required extensions are installed", async () => {

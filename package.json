@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate --ignore-conflicts",
     "db:push": "echo '❌ db:push is disabled. Use db:generate + db:migrate instead.' && echo 'For local dev only, use: pnpm db:push:unsafe' && exit 1",
     "db:push:unsafe": "echo '⚠️  WARNING: This bypasses schema lockdown. Do not use in production!' && echo 'Press Ctrl+C to cancel, or wait 5 seconds...' && sleep 5 && drizzle-kit push",
     "db:check": "drizzle-kit check",

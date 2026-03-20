@@ -85,9 +85,7 @@ describe("Database Contract Tests", () => {
 
     it("has required employee columns", () => {
       expect(columns.employeeCode).toBeDefined();
-      expect(columns.firstName).toBeDefined();
-      expect(columns.lastName).toBeDefined();
-      expect(columns.email).toBeDefined();
+      expect(columns.personId).toBeDefined();
       expect(columns.hireDate).toBeDefined();
     });
 

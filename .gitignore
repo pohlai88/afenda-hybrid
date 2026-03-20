@@ -36,6 +36,10 @@ drizzle/meta/
 *.sqlite
 .drizzle/
 
+# Drizzle introspect output (canonical schema lives in src/db/schema/)
+src/db/migrations/schema.ts
+src/db/migrations/relations.ts
+
 # Drizzle push artifacts (prevent accidental commits)
 src/db/migrations/**/push-*
 src/db/migrations/**/.push-*

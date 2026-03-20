@@ -167,7 +167,7 @@ function checkDatabaseConnection(): boolean {
       message: `Connection string valid (${url.hostname}:${url.port || 5432}/${url.pathname.slice(1)})`,
     });
     return true;
-  } catch (error) {
+  } catch {
     checks.push({
       name: "Database Connection",
       status: "fail",
@@ -248,22 +248,7 @@ function main(): void {
   checkCommand("node --version", "Node.js");
   checkCommand("pnpm --version", "pnpm");
   
-  // 7. Check optional tools
-  try {
-    execSync("psql --version", { stdio: "ignore" });
-    checks.push({
-      name: "PostgreSQL Client",
-      status: "pass",
-      message: "psql available for database operations",
-    });
-  } catch {
-    checks.push({
-      name: "PostgreSQL Client",
-      status: "warn",
-      message: "psql not available (optional)",
-      action: "Install PostgreSQL client for manual database operations",
-    });
-  }
+  // 7. PostgreSQL client check removed - using Drizzle Studio instead (pnpm db:studio)
   
   // 8. Check git (optional)
   try {

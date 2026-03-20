@@ -214,15 +214,15 @@ function checkSharedMixins(): void {
       rule: "shared-mixins",
       message: "Missing _shared directory for column mixins",
       severity: "error",
-      suggestion: "Create _shared/ with timestamps.ts, tenantScope.ts, and index.ts",
+      suggestion: "Create _shared/ with timestamps.ts, auditColumns.ts, and index.ts",
     });
     return;
   }
 
-  // Check for required mixins
+  // Check for required mixins (tenantScope removed - tenantId is explicit per table)
   const requiredMixins = [
     { file: "timestamps.ts", desc: "createdAt/updatedAt columns" },
-    { file: "tenantScope.ts", desc: "tenantId column with FK" },
+    { file: "auditColumns.ts", desc: "createdBy/updatedBy columns" },
   ];
   
   for (const { file, desc } of requiredMixins) {

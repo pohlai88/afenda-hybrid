@@ -63,7 +63,7 @@ function walkDir(dir: string): string[] {
 }
 
 function getSchemaFromPath(filePath: string): string | null {
-  const match = filePath.match(/schema[\/\\](\w+)/);
+  const match = filePath.match(/schema[/\\](\w+)/);
   return match ? match[1] : null;
 }
 
@@ -122,8 +122,8 @@ function checkTenantIsolation(filePath: string): void {
   // Check if this schema should be tenant-scoped
   const shouldBeTenantScoped = schemaName && TENANT_SCOPED_SCHEMAS.includes(schemaName);
 
-  // Check for tenantId presence
-  const hasTenantId = content.includes("tenantId") || content.includes("tenantScopedColumns");
+  // Check for tenantId presence (explicit definition only - no mixin)
+  const hasTenantId = content.includes("tenantId");
 
   if (shouldBeTenantScoped && !hasTenantId) {
     issues.push({
@@ -135,7 +135,7 @@ function checkTenantIsolation(filePath: string): void {
       message: `Table in ${schemaName} schema must include tenantId`,
       severity: "error",
       codeSnippet: getCodeSnippet(content, tableInfo.line),
-      suggestion: "Add ...tenantScopedColumns from _shared/tenantScope.ts",
+      suggestion: "Add explicit tenantId: integer().notNull() with foreignKey() to core.tenants",
     });
     return;
   }
@@ -144,11 +144,10 @@ function checkTenantIsolation(filePath: string): void {
     return;
   }
 
-  // Check for FK constraint on tenantId
+  // Check for FK constraint on tenantId (explicit foreignKey() block required)
   const hasTenantFK = 
     content.includes(".references(() => tenants.tenantId)") ||
-    content.includes("foreignColumns: [tenants.tenantId]") ||
-    content.includes("tenantScopedColumns");
+    content.includes("foreignColumns: [tenants.tenantId]");
 
   if (!hasTenantFK) {
     const tenantIdLoc = findLineAndColumn(content, "tenantId:");
@@ -161,7 +160,7 @@ function checkTenantIsolation(filePath: string): void {
       message: "tenantId must have a foreign key constraint to core.tenants",
       severity: "error",
       codeSnippet: getCodeSnippet(content, tenantIdLoc.line),
-      suggestion: "Add .references(() => tenants.tenantId) or use tenantScopedColumns mixin",
+      suggestion: "Add foreignKey({ columns: [t.tenantId], foreignColumns: [tenants.tenantId], name: 'fk_..._tenant' })",
     });
   }
 

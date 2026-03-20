@@ -1,41 +1,56 @@
-import { integer, text, date, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
+import { integer, text, date, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
 import { z } from "zod";
-import { hrSchema } from "../_schema";
-import { timestampColumns, softDeleteColumns, tenantScopedColumns, auditColumns } from "../../_shared";
-import { tenants } from "../../core/tenants";
 import { sql } from "drizzle-orm";
+import { hrSchema } from "../_schema";
+import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
+import { tenants } from "../../core/tenants";
+import { locations } from "../../core/locations";
 
-export const employeeStatusEnum = hrSchema.enum("employee_status", [
-  "ACTIVE",
-  "ON_LEAVE",
-  "TERMINATED",
-  "PENDING",
-]);
+/**
+ * Employees - Work relationship entity linking a person to an organization.
+ * Identity data (name, contact, DOB) is stored in hr.persons and related tables.
+ *
+ * Circular FK note: personId, departmentId, and positionId FKs are added via custom SQL
+ * in migrations to avoid circular import dependencies.
+ * Relations are defined in hr/_relations.ts for query convenience.
+ */
+export const employeeStatuses = ["ACTIVE", "ON_LEAVE", "TERMINATED", "SUSPENDED", "PENDING", "PROBATION"] as const;
+
+export const employeeStatusEnum = hrSchema.enum("employee_status", [...employeeStatuses]);
+
+export const employeeStatusZodEnum = createSelectSchema(employeeStatusEnum);
 
 export const employees = hrSchema.table(
   "employees",
   {
     employeeId: integer().primaryKey().generatedAlwaysAsIdentity(),
-    ...tenantScopedColumns,
+    tenantId: integer().notNull(),
+    personId: integer().notNull(),
     employeeCode: text().notNull(),
-    firstName: text().notNull(),
-    lastName: text().notNull(),
-    email: text().notNull(),
     hireDate: date().notNull(),
+    terminationDate: date(),
+    departmentId: integer(),
+    positionId: integer(),
+    managerId: integer(),
+    locationId: integer(),
     status: employeeStatusEnum().notNull().default("PENDING"),
+    notes: text(),
     ...timestampColumns,
     ...softDeleteColumns,
     ...auditColumns,
   },
   (t) => [
     index("idx_employees_tenant").on(t.tenantId),
+    index("idx_employees_person").on(t.tenantId, t.personId),
     index("idx_employees_status").on(t.tenantId, t.status),
+    index("idx_employees_department").on(t.tenantId, t.departmentId),
+    index("idx_employees_position").on(t.tenantId, t.positionId),
+    index("idx_employees_manager").on(t.tenantId, t.managerId),
+    index("idx_employees_location").on(t.tenantId, t.locationId),
+    index("idx_employees_hire_date").on(t.tenantId, t.hireDate),
     uniqueIndex("uq_employees_code")
-      .on(t.tenantId, t.employeeCode)
-      .where(sql`${t.deletedAt} IS NULL`),
-    uniqueIndex("uq_employees_email")
-      .on(t.tenantId, t.email)
+      .on(t.tenantId, sql`lower(${t.employeeCode})`)
       .where(sql`${t.deletedAt} IS NULL`),
     foreignKey({
       columns: [t.tenantId],
@@ -44,19 +59,40 @@ export const employees = hrSchema.table(
     })
       .onDelete("restrict")
       .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.managerId],
+      foreignColumns: [t.employeeId],
+      name: "fk_employees_manager",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.locationId],
+      foreignColumns: [locations.locationId],
+      name: "fk_employees_location",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    check("chk_employees_hire_date", sql`${t.hireDate} >= '1900-01-01'`),
+    check(
+      "chk_employees_termination_after_hire",
+      sql`${t.terminationDate} IS NULL OR ${t.terminationDate} >= ${t.hireDate}`
+    ),
+    check(
+      "chk_employees_terminated_status",
+      sql`${t.status} != 'TERMINATED' OR ${t.terminationDate} IS NOT NULL`
+    ),
   ]
 );
 
-export const EmployeeId = z.number().int().brand<"EmployeeId">();
-export type EmployeeId = z.infer<typeof EmployeeId>;
+export const EmployeeIdSchema = z.number().int().brand<"EmployeeId">();
+export type EmployeeId = z.infer<typeof EmployeeIdSchema>;
 
 export const employeeSelectSchema = createSelectSchema(employees);
 
 export const employeeInsertSchema = createInsertSchema(employees, {
-  email: z.string().email(),
-  firstName: z.string().max(100),
-  lastName: z.string().max(100),
-  employeeCode: z.string().max(50),
+  employeeCode: z.string().min(2).max(50).regex(/^[A-Z0-9_-]+$/i, "Only alphanumeric, underscore, and hyphen allowed"),
+  notes: z.string().max(2000).optional(),
 });
 
 export const employeeUpdateSchema = createUpdateSchema(employees);

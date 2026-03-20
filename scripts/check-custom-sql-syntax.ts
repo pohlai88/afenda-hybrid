@@ -4,7 +4,7 @@
  * Validates that custom SQL blocks in migrations are syntactically correct
  * by running them through PostgreSQL's parser (requires database connection).
  * 
- * @see docs/ci-gate-analysis.md
+ * @see docs/archive/ci-gates/ci-gate-analysis.md
  */
 
 import * as fs from "fs";
@@ -99,7 +99,14 @@ function validateSqlSyntax(sql: string, migrationName: string, blockId: string, 
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (error) {
-      const errorMsg = error instanceof Error ? (error as any).stderr || error.message : String(error);
+      const stderr =
+        error !== null &&
+        typeof error === "object" &&
+        "stderr" in error &&
+        typeof (error as { stderr: unknown }).stderr === "string"
+          ? (error as { stderr: string }).stderr
+          : undefined;
+      const errorMsg = stderr ?? (error instanceof Error ? error.message : String(error));
       
       // Parse PostgreSQL error message
       const errorMatch = errorMsg.match(/ERROR:\s*(.+)/);
@@ -163,7 +170,7 @@ function main(): void {
       stdio: ["pipe", "pipe", "pipe"],
     });
     console.log("✅ Database connection successful\n");
-  } catch (error) {
+  } catch {
     console.log("⚠️ Could not connect to database - skipping syntax validation");
     console.log("   Set DATABASE_URL environment variable to enable syntax checking\n");
     process.exit(0);
