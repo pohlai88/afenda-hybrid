@@ -304,4 +304,3 @@ These rules are enforced via `.github/CODEOWNERS` file.
 - [DB-First Guideline](architecture/01-db-first-guideline.md) - Complete schema design guidelines
 - [Custom SQL Documentation](../src/db/schema/audit/CUSTOM_SQL.md) - Detailed custom SQL examples
 - [CI gates (maintained)](CI_GATES.md) — day-to-day CI reference
-- [Archived: CI implementation audit](archive/ci-gates/CI_GATE_IMPLEMENTATION_AUDIT.md) — historical detail

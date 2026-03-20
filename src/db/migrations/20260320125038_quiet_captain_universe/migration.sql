@@ -1,0 +1,6 @@
+ALTER TABLE "talent"."performance_review_goals" ALTER COLUMN "goalTitleSnapshot" SET DATA TYPE varchar(200) USING "goalTitleSnapshot"::varchar(200);--> statement-breakpoint
+ALTER TABLE "talent"."performance_review_goals" ALTER COLUMN "goalTargetSnapshot" SET DATA TYPE varchar(2000) USING "goalTargetSnapshot"::varchar(2000);--> statement-breakpoint
+ALTER TABLE "talent"."performance_review_goals" ALTER COLUMN "comment" SET DATA TYPE varchar(4000) USING "comment"::varchar(4000);--> statement-breakpoint
+CREATE INDEX "idx_performance_review_goals_final" ON "talent"."performance_review_goals" ("tenantId","finalScore") WHERE "finalScore" IS NOT NULL AND "deletedAt" IS NULL;--> statement-breakpoint
+ALTER TABLE "talent"."performance_review_goals" ADD CONSTRAINT "chk_performance_review_goals_final_between" CHECK ("managerScore" IS NULL OR "employeeScore" IS NULL OR "finalScore" IS NULL OR
+          ("finalScore" >= LEAST("managerScore", "employeeScore") AND "finalScore" <= GREATEST("managerScore", "employeeScore")));

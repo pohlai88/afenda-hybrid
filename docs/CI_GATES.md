@@ -314,6 +314,7 @@ The database CI **blocks merge** if any of these fail:
 | Script | Purpose | Command |
 |--------|---------|---------|
 | `check:docs-sync` | Documentation sync | `pnpm check:docs-sync` |
+| `check:hr-audit-matrix` | `hr-schema-audit-matrix.md`: 112 rows + exact `talent` table set (17) | `pnpm check:hr-audit-matrix` |
 
 ## Running Locally
 
@@ -420,6 +421,270 @@ Migration files must include markers:
 CREATE TABLE audit.audit_trail_2026_q1 PARTITION OF ...
 ```
 
+## CSQL-014 staging gate (review goal `finalScore`)
+
+Before applying migration `20260320125500_review_goal_final_score_triggers` to **staging** or **production**, ensure no rows violate the trigger rules.
+
+### Local / script
+
+```bash
+# Uses DATABASE_URL (e.g. staging connection string)
+pnpm check:csql014-preflight
+```
+
+- Exit **0** when violation and orphan counts are both **0**.
+- Exit **1** otherwise (with counts logged). Remediate using `docs/preflight-csql-014-review-goal-final-score.sql`.
+- Jobs **without** a database (e.g. some PR checks): set `SKIP_CSQL014_PREFLIGHT=1` to no-op.
+
+### CI/CD sketch (GitHub Actions)
+
+Run after migrations are applied to the target DB but **before** promoting the release (or as a dedicated “data quality” job on staging):
+
+```yaml
+  data-quality-csql014:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # or deploy branches only
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - name: CSQL-014 preflight (blocks if violations)
+        run: pnpm check:csql014-preflight
+```
+
+Replace `STAGING_DATABASE_URL` with your secret; use a **read-only** role if your org requires it (the script only runs `SELECT COUNT`).
+
+### Nightly staging monitoring (optional)
+
+Run the same gate on a **schedule** so regressions surface before the next promotion — not a substitute for the pre-deploy gate, but an early warning.
+
+**GitHub Actions** example (`.github/workflows/staging-csql014-nightly.yml` — adjust branch/cron/secrets):
+
+```yaml
+name: Staging CSQL-014 preflight (nightly)
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily; tune for your timezone
+  workflow_dispatch: {}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - id: gate
+        run: pnpm check:csql014-preflight
+        continue-on-error: true
+      - name: Slack notify on violation
+        if: steps.gate.outcome == 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CSQL014_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then echo "No SLACK_CSQL014_WEBHOOK_URL; skip notify"; exit 0; fi
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"*CSQL-014 preflight failed* on scheduled staging check. Remediate: \`docs/preflight-csql-014-review-goal-final-score.sql\` — workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK_URL"
+      - name: Microsoft Teams notify on violation (optional)
+        if: steps.gate.outcome == 'failure'
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_CSQL014_WEBHOOK_URL }}
+        run: |
+          if [ -z "${TEAMS_WEBHOOK_URL:-}" ]; then echo "No TEAMS_CSQL014_WEBHOOK_URL; skip notify"; exit 0; fi
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            --data "{\"@type\":\"MessageCard\",\"summary\":\"CSQL-014 preflight failed\",\"themeColor\":\"FF0000\",\"text\":\"Scheduled staging CSQL-014 preflight failed. See workflow run ${{ github.run_id }} and docs/preflight-csql-014-review-goal-final-score.sql\"}" \
+            "$TEAMS_WEBHOOK_URL"
+      - name: Fail job if gate failed
+        if: steps.gate.outcome == 'failure'
+        run: exit 1
+```
+
+Notes:
+
+- Store webhook URLs as **secrets** (`SLACK_CSQL014_WEBHOOK_URL`, optional `TEAMS_CSQL014_WEBHOOK_URL`, plus `STAGING_DATABASE_URL`). If unset, notify steps no-op and the job still fails when the gate fails. The `curl` example uses a minimal payload; use your org’s Slack app formatting if needed.
+- **Teams** Office 365 connectors expect a **MessageCard**-style JSON; your tenant may use **Workflows** URLs instead — adjust the body to match Microsoft’s current webhook schema.
+- To post **counts** (not only fail/success), extend `scripts/check-csql-014-preflight.ts` to print JSON on success (e.g. `{"violations":0,"orphans":0}`) and parse that in a follow-up step for richer notifications.
+- Keep **read-only** `DATABASE_URL` for this job if policy allows.
+
+## Performance reviews lifecycle preflight
+
+Before applying migration `20260320131009_loose_venom` (or any deploy that adds lifecycle CHECKs on `talent.performance_reviews`), ensure rows satisfy:
+
+- `completedDate` only when `status` is `COMPLETED` or `ACKNOWLEDGED`
+- `acknowledgedDate` only when `status` is `ACKNOWLEDGED`
+- `finalRating` / `overallScore` only when `status` is terminal (`COMPLETED` or `ACKNOWLEDGED`)
+
+### Local / script
+
+```bash
+pnpm check:reviews-lifecycle-preflight
+```
+
+- Exit **0** when all three violation counts are **0**.
+- Exit **1** otherwise. Remediate using `docs/preflight-performance-reviews-lifecycle.sql`.
+- Jobs without a database: set `SKIP_REVIEWS_LIFECYCLE_PREFLIGHT=1` to no-op (same pattern as CSQL-014).
+
+Run **before** the migration on the same database (typically staging first). For production integrity, run **after** CSQL-014 preflight if you use both gates in one promotion: clear goal `finalScore` / review outcomes in an order that matches your workflow (see remediation notes in the SQL file).
+
+## Promotion records preflight
+
+Before migration `20260320131426_flaky_black_tom` (approval **CHECK**, partial/reporting indexes, unique active row per employee effective date), run:
+
+```bash
+pnpm check:promotion-records-preflight
+```
+
+- Exit **0** when **approval** violations and **duplicate** `(tenantId, employeeId, effectiveDate)` groups (among non-deleted rows) are both **0**.
+- Remediation: `docs/preflight-promotion-records-approval.sql`.
+- Jobs without a DB: `SKIP_PROMOTION_RECORDS_PREFLIGHT=1`.
+
+**Note:** `approvedBy` / `approvedAt` use **CHECK** constraints (not a trigger): paired NULL/non-NULL, and when `status` is `APPROVED` or `COMPLETED`, both must be set. Stamps on other statuses are rejected.
+
+## Grievance resolution preflight
+
+Before migration `20260320131847_grievance_resolution_consistency` (stricter `resolvedBy` / `resolvedDate` / `status = RESOLVED` pairing + partial index on resolved cases), run:
+
+```bash
+pnpm check:grievance-resolution-preflight
+```
+
+- Exit **0** when **resolution_violations** is **0**.
+- Remediation: `docs/preflight-grievance-records-resolution.sql`.
+- Jobs without a DB: `SKIP_GRIEVANCE_RESOLUTION_PREFLIGHT=1`.
+
+This replaces `chk_grievance_records_resolved_complete` (RESOLVED implies both fields) with **full consistency**: resolution fields are paired, and **`status` must be `RESOLVED` whenever either field is set**.
+
+## Learning / certification lifecycle preflight
+
+Before migration `20260320132450_learning_completion_cert_verification`:
+
+- **`learning.training_enrollments`**: `completionDate` is set **if and only if** `status = COMPLETED` (there is no `completedBy` column today).
+- **`talent.employee_certifications`**: `verifiedBy` / `verificationDate` are **paired**, and **must be NULL** while `status = PENDING_VERIFICATION`.
+
+```bash
+pnpm check:learning-cert-lifecycle-preflight
+```
+
+- Exit **0** when both violation counts are **0**.
+- Remediation: `docs/preflight-learning-completion-cert-verification.sql`.
+- Jobs without a DB: `SKIP_LEARNING_CERT_LIFECYCLE_PREFLIGHT=1`.
+
+## Succession plans lifecycle preflight
+
+Before migration `20260320132957_succession_plans_lifecycle`:
+
+- **`targetDate`** required when **`status`** is **`ACTIVE`** or **`UNDER_REVIEW`**
+- **Unique** active row per **`(tenantId, positionId, successorId)`**
+- **`developmentPlan`** becomes **`varchar(4000)`** (values **>4000** chars are truncated by the migration `USING` clause — preflight flags them)
+
+```bash
+pnpm check:succession-plans-preflight
+```
+
+- Exit **0** when **missing_target_date**, **duplicate_position_successor_groups**, and **development_plan_over_4000_chars** are all **0**.
+- Remediation: `docs/preflight-succession-plans-lifecycle.sql`.
+- Jobs without a DB: `SKIP_SUCCESSION_PLANS_PREFLIGHT=1`.
+
+**Optional (not enabled):** require non-empty `developmentPlan` for `ACTIVE` / `UNDER_REVIEW` — see `docs/succession-plans-optional-development-plan-check.md` (CHECK name, preflight `SELECT`, Drizzle snippet, CI extension).
+
+### Nightly: succession development-plan gap (staging)
+
+While the optional CHECK is **off**, you can still **measure** how many live rows lack a real `developmentPlan` — useful for deciding when data is clean enough to enable `chk_succession_plans_development_when_live`.
+
+**Local / script** (read-only `SELECT COUNT`):
+
+```bash
+DATABASE_URL=... pnpm report:succession-plans-development-gap
+```
+
+- Prints `succession_plans_live_without_development_plan_count=<n>` and a human-readable summary.
+- Exits **0** even when `n > 0` (safe for non-blocking nightly jobs).
+- `SUCCESSION_DEV_PLAN_GAP_FAIL=1` → exit **1** if `n > 0` (strict / “warn as failure”).
+- `SKIP_SUCCESSION_DEV_PLAN_GAP_REPORT=1` → no-op.
+- In **GitHub Actions**, if `GITHUB_OUTPUT` is set, appends `development_plan_gap_count=<n>` for later steps.
+
+**GitHub Actions** example (`.github/workflows/staging-succession-dev-plan-gap-nightly.yml` — informational notify only; job stays **green** unless you add strict mode below):
+
+```yaml
+name: Staging succession — development plan gap (nightly)
+
+on:
+  schedule:
+    - cron: "30 6 * * *" # 06:30 UTC; offset from other nightly jobs
+  workflow_dispatch: {}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - id: gap
+        run: pnpm report:succession-plans-development-gap
+      - name: Slack when gap > 0 (optional)
+        if: steps.gap.outputs.development_plan_gap_count != '0'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_SUCCESSION_DEV_PLAN_GAP_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then echo "No webhook; skip"; exit 0; fi
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"*Succession plans (staging)*: \`${{ steps.gap.outputs.development_plan_gap_count }}\` ACTIVE/UNDER_REVIEW row(s) with empty \`developmentPlan\`. Optional CHECK not enabled — \`docs/succession-plans-optional-development-plan-check.md\`. Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK_URL"
+```
+
+To emit **only** the JSON metrics line (for a follow-up `curl` / warehouse step), add to the **gap** step:
+
+```yaml
+        env:
+          SUCCESSION_DEV_PLAN_GAP_JSON_LINE: "1"
+```
+
+The script appends **`development_plan_gap_count=<n>`** to **`GITHUB_OUTPUT`** when GitHub sets that env var (default on every step), which exposes **`steps.gap.outputs.development_plan_gap_count`**.
+
+**Strict nightly (red build when gap > 0):** on the report step set `SUCCESSION_DEV_PLAN_GAP_FAIL: 1`, or add `run: test "${{ steps.gap.outputs.development_plan_gap_count }}" -eq 0`.
+
+**Trends / metrics (optional):** the report script can emit **one JSON line** (`SUCCESSION_DEV_PLAN_GAP_JSON_LINE=1`) and appends to **`GITHUB_STEP_SUMMARY`** when GitHub provides it — see `docs/succession-plans-optional-development-plan-check.md` → *Metrics & trend charts*.
+
+## Talent: `case_links` orphan endpoints (optional report)
+
+`talent.case_links` is polymorphic; FK to grievance/disciplinary rows is **not** enforced in PostgreSQL. Use a read-only count to find broken `(sourceType, sourceId)` / `(targetType, targetId)` references.
+
+```bash
+DATABASE_URL=... pnpm report:case-links-integrity
+```
+
+- Prints `case_links_orphan_endpoint_count=<n>`.
+- Exits **0** by default; `CASE_LINKS_ORPHAN_FAIL=1` → exit **1** if `n > 0`.
+- `SKIP_CASE_LINKS_INTEGRITY_REPORT=1` → no-op.
+- See `docs/talent-domain-boundaries.md`.
+
 ## Troubleshooting
 
 ### Schema Drift Detected
@@ -499,4 +764,3 @@ export const myTableInsertSchema = createInsertSchema(myTable);
 - [DB-First Guideline](./architecture/01-db-first-guideline.md)
 - [Custom SQL Documentation](../src/db/schema/audit/CUSTOM_SQL.md)
 - [Custom SQL Registry](../src/db/schema/audit/CUSTOM_SQL_REGISTRY.json)
-- [Archived: Custom SQL files validation narrative](./archive/custom-sql/CUSTOM_SQL_FILES_VALIDATION.md)

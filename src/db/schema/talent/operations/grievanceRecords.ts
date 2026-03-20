@@ -1,6 +1,7 @@
-import { integer, text, date, index, foreignKey } from "drizzle-orm/pg-core";
+import { integer, varchar, date, index, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
+import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
 import { tenants } from "../../core/tenants";
@@ -8,6 +9,9 @@ import { tenants } from "../../core/tenants";
 /**
  * Grievance Records - Employee complaints and resolution tracking.
  * Circular FK note: employeeId, againstEmployeeId, assignedTo, resolvedBy FKs added via custom SQL.
+ *
+ * Resolution: `resolvedBy` / `resolvedDate` are both NULL or both set; `status = RESOLVED` iff those
+ * fields are set (CHECK). Preflight: `docs/preflight-grievance-records-resolution.sql`.
  */
 export const grievanceTypes = ["HARASSMENT", "DISCRIMINATION", "WORKPLACE_SAFETY", "POLICY_VIOLATION", "MANAGEMENT", "COMPENSATION", "WORKING_CONDITIONS", "OTHER"] as const;
 
@@ -30,11 +34,12 @@ export const grievanceRecords = talentSchema.table(
     grievanceType: grievanceTypeEnum().notNull(),
     submissionDate: date().notNull(),
     incidentDate: date(),
-    description: text().notNull(),
+    /** DB-capped to match API / Zod (was unbounded `text`). */
+    description: varchar({ length: 4000 }).notNull(),
     againstEmployeeId: integer(),
     assignedTo: integer(),
-    investigationNotes: text(),
-    resolution: text(),
+    investigationNotes: varchar({ length: 4000 }),
+    resolution: varchar({ length: 4000 }),
     resolvedBy: integer(),
     resolvedDate: date(),
     status: grievanceStatusEnum().notNull().default("SUBMITTED"),
@@ -48,7 +53,20 @@ export const grievanceRecords = talentSchema.table(
     index("idx_grievance_records_type").on(t.tenantId, t.grievanceType),
     index("idx_grievance_records_status").on(t.tenantId, t.status),
     index("idx_grievance_records_date").on(t.tenantId, t.submissionDate),
+    /** Reporting / date-range filters (e.g. “last quarter”) */
+    index("idx_grievance_records_incident").on(t.tenantId, t.incidentDate),
     index("idx_grievance_records_assigned").on(t.tenantId, t.assignedTo),
+    index("idx_grievance_records_resolved_reporting")
+      .on(t.tenantId, t.resolvedDate)
+      .where(
+        sql`${t.deletedAt} IS NULL AND ${t.status} = ${sql.raw(`'RESOLVED'::"talent"."grievance_status"`)}`,
+      ),
+    /** Active investigations (partial — excludes soft-deleted rows). */
+    index("idx_grievance_records_under_investigation")
+      .on(t.tenantId)
+      .where(
+        sql`${t.status} = 'UNDER_INVESTIGATION' AND ${t.deletedAt} IS NULL`,
+      ),
     foreignKey({
       columns: [t.tenantId],
       foreignColumns: [tenants.tenantId],
@@ -56,6 +74,12 @@ export const grievanceRecords = talentSchema.table(
     })
       .onDelete("restrict")
       .onUpdate("cascade"),
+    check(
+      "chk_grievance_records_resolution_consistency",
+      sql`((${t.resolvedBy} IS NULL) = (${t.resolvedDate} IS NULL)) AND
+          (${t.status}::text != 'RESOLVED' OR (${t.resolvedBy} IS NOT NULL AND ${t.resolvedDate} IS NOT NULL)) AND
+          ((${t.resolvedBy} IS NULL AND ${t.resolvedDate} IS NULL) OR ${t.status}::text = 'RESOLVED')`,
+    ),
   ]
 );
 

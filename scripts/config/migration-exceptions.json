@@ -33,6 +33,86 @@
       "customSqlIds": ["CSQL-011"],
       "owner": "dba-team",
       "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320080000_hcm_payroll_statutory",
+      "rule": "possible-hand-written",
+      "reason": "HCM plan: statutory schemes/rates, legal entity on payroll, tax regime, pay component masters, bank codes, recruitment salary, benefit coverage enum; snapshot should be regenerated on next drizzle-kit generate",
+      "customSqlIds": [],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320182000_skills_code_name_checks",
+      "rule": "possible-hand-written",
+      "reason": "Hand-written CHECK constraints for skills master data; documented as CSQL-012",
+      "customSqlIds": ["CSQL-012"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320182000_skills_code_name_checks",
+      "rule": "migration-format",
+      "reason": "SQL-only migration folder (no drizzle-kit snapshot)",
+      "customSqlIds": [],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320174000_employee_skills_proficiency_backfill",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (proficiency column + trigger)",
+      "customSqlIds": ["CSQL-013"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320175500_employee_skills_proficiency_cleanup",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (drop legacy proficiency column)",
+      "customSqlIds": [],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320180000_talent_junction_contract_alignment",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (competency_skills tenant + performance_review_goals)",
+      "customSqlIds": [],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320124500_core_org_same_tenant_parent_trigger",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (organizations same-tenant parent trigger; CSQL-008/009)",
+      "customSqlIds": ["CSQL-008", "CSQL-009"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320124500_core_org_same_tenant_parent_trigger",
+      "rule": "possible-hand-written",
+      "reason": "Trigger + function cannot be expressed in Drizzle schema",
+      "customSqlIds": ["CSQL-008", "CSQL-009"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320125500_review_goal_final_score_triggers",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (review goal finalScore vs parent review status; CSQL-014)",
+      "customSqlIds": ["CSQL-014"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320125500_review_goal_final_score_triggers",
+      "rule": "possible-hand-written",
+      "reason": "Cross-table PL/pgSQL triggers",
+      "customSqlIds": ["CSQL-014"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
     }
   ]
 }

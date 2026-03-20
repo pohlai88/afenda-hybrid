@@ -40,22 +40,31 @@ async function waitForDatabase(maxRetries = 30, delay = 1000): Promise<void> {
 }
 
 /**
- * Verify required extensions are installed
+ * Ensure required extensions exist (fresh DBs from test:db:recreate have none until this runs).
  */
-async function verifyExtensions(): Promise<void> {
+async function ensureRequiredExtensions(): Promise<void> {
+  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS btree_gist`);
+  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+
   const extensions = await db.execute(sql`
     SELECT extname FROM pg_extension 
     WHERE extname IN ('btree_gist', 'pgcrypto')
   `);
-  
-  const extNames = (extensions.rows as Array<{ extname: string }>).map((r) => r.extname);
-  
+
+  const extNames = (extensions.rows as Array<{ extname: string }>).map(
+    (r) => r.extname,
+  );
+
   if (!extNames.includes("btree_gist")) {
-    throw new Error("Required extension 'btree_gist' is not installed");
+    throw new Error(
+      "Required extension 'btree_gist' is not installed (CREATE EXTENSION failed — need superuser or rds_superuser?)",
+    );
   }
-  
+
   if (!extNames.includes("pgcrypto")) {
-    throw new Error("Required extension 'pgcrypto' is not installed");
+    throw new Error(
+      "Required extension 'pgcrypto' is not installed (CREATE EXTENSION failed — need superuser or rds_superuser?)",
+    );
   }
 }
 
@@ -63,10 +72,10 @@ async function verifyExtensions(): Promise<void> {
  * Run migrations
  */
 async function runMigrations(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL environment variable is not set");
-  }
+  const databaseUrl =
+    process.env.DATABASE_URL?.trim() ||
+    "postgresql://postgres:postgres@localhost:5433/afenda_test";
+  process.env.DATABASE_URL = databaseUrl;
 
   // Create a connection pool for migrations
   pool = new Pool({
@@ -102,11 +111,11 @@ beforeAll(async () => {
   // Wait for database to be ready
   await waitForDatabase();
   console.log("✓ Database connection established");
-  
-  // Verify extensions
-  await verifyExtensions();
-  console.log("✓ Required extensions verified");
-  
+
+  // Extensions before migrations (exclusion constraints / crypto may depend on them)
+  await ensureRequiredExtensions();
+  console.log("✓ Required extensions present");
+
   // Run migrations
   await runMigrations();
 }, 60000); // 60 second timeout for setup

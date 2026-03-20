@@ -1,6 +1,6 @@
 import { integer, text, date, smallint, numeric, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
@@ -9,6 +9,15 @@ import { tenants } from "../../core/tenants";
 /**
  * Performance Reviews - Periodic employee evaluations.
  * Circular FK note: employeeId and reviewerId FKs added via custom SQL.
+ *
+ * Lifecycle: CHECKs tie milestone dates and terminal outcome fields to `status` (no trigger needed).
+ * Preflight before adding constraints: docs/preflight-performance-reviews-lifecycle.sql
+ * (pnpm check:reviews-lifecycle-preflight).
+ * `reviewerId` may equal `employeeId` where the product allows self-driven or peer workflows — do not
+ * assume manager-only reviews at the DB layer.
+ *
+ * DB: `trg_reviews_status_vs_goal_finals` prevents moving a review out of a terminal status while
+ * `performance_review_goals` rows still have `finalScore` (CSQL-014).
  */
 export const reviewTypes = ["ANNUAL", "SEMI_ANNUAL", "QUARTERLY", "PROBATION", "PROJECT", "AD_HOC"] as const;
 
@@ -54,6 +63,14 @@ export const performanceReviews = talentSchema.table(
     index("idx_performance_reviews_type").on(t.tenantId, t.reviewType),
     index("idx_performance_reviews_status").on(t.tenantId, t.status),
     index("idx_performance_reviews_period").on(t.tenantId, t.reviewPeriodStart, t.reviewPeriodEnd),
+    index("idx_performance_reviews_period_end_active")
+      .on(t.tenantId, t.reviewPeriodEnd)
+      .where(sql`${t.deletedAt} IS NULL`),
+    index("idx_performance_reviews_completed_reporting")
+      .on(t.tenantId, t.employeeId)
+      .where(
+        sql`${t.deletedAt} IS NULL AND ${t.status} = ${sql.raw(`'COMPLETED'::"talent"."review_status"`)}`
+      ),
     uniqueIndex("uq_performance_reviews_employee_period")
       .on(t.tenantId, t.employeeId, t.reviewType, t.reviewPeriodStart, t.reviewPeriodEnd)
       .where(sql`${t.deletedAt} IS NULL`),
@@ -78,6 +95,19 @@ export const performanceReviews = talentSchema.table(
       "chk_performance_reviews_score",
       sql`${t.overallScore} IS NULL OR (${t.overallScore} >= 0 AND ${t.overallScore} <= 5)`
     ),
+    check(
+      "chk_performance_reviews_completed_date_vs_status",
+      sql`${t.completedDate} IS NULL OR ${t.status}::text IN ('COMPLETED', 'ACKNOWLEDGED')`
+    ),
+    check(
+      "chk_performance_reviews_acknowledged_date_vs_status",
+      sql`${t.acknowledgedDate} IS NULL OR ${t.status}::text = 'ACKNOWLEDGED'`
+    ),
+    check(
+      "chk_performance_reviews_terminal_outcomes_vs_status",
+      sql`(${t.finalRating} IS NULL OR ${t.status}::text IN ('COMPLETED', 'ACKNOWLEDGED')) AND
+          (${t.overallScore} IS NULL OR ${t.status}::text IN ('COMPLETED', 'ACKNOWLEDGED'))`
+    ),
   ]
 );
 
@@ -90,14 +120,24 @@ export const performanceReviewInsertSchema = createInsertSchema(performanceRevie
   selfRating: z.number().int().min(1).max(5).optional(),
   managerRating: z.number().int().min(1).max(5).optional(),
   finalRating: z.number().int().min(1).max(5).optional(),
-  overallScore: z.string().optional(),
+  /** Matches `numeric(3,2)`; coerce accepts numeric strings from APIs/forms. */
+  overallScore: z.coerce.number().min(0).max(5).optional(),
   strengths: z.string().max(4000).optional(),
   areasForImprovement: z.string().max(4000).optional(),
   managerComments: z.string().max(4000).optional(),
   employeeComments: z.string().max(4000).optional(),
 });
 
-export const performanceReviewUpdateSchema = createUpdateSchema(performanceReviews);
+export const performanceReviewUpdateSchema = createUpdateSchema(performanceReviews, {
+  selfRating: z.number().int().min(1).max(5).optional(),
+  managerRating: z.number().int().min(1).max(5).optional(),
+  finalRating: z.number().int().min(1).max(5).optional(),
+  overallScore: z.coerce.number().min(0).max(5).optional(),
+  strengths: z.string().max(4000).optional(),
+  areasForImprovement: z.string().max(4000).optional(),
+  managerComments: z.string().max(4000).optional(),
+  employeeComments: z.string().max(4000).optional(),
+});
 
 export type PerformanceReview = typeof performanceReviews.$inferSelect;
 export type NewPerformanceReview = typeof performanceReviews.$inferInsert;

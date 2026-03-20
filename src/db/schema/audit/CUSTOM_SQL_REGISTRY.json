@@ -65,7 +65,7 @@
     },
     "CSQL-008": {
       "purpose": "Create tenant isolation trigger function (check_same_tenant_parent)",
-      "migration": "20260319144405_gifted_ultragirl",
+      "migration": "20260320124500_core_org_same_tenant_parent_trigger",
       "type": "TRIGGER_FUNCTION",
       "justification": "Complex tenant isolation logic requires PL/pgSQL trigger function",
       "rollback": "DROP FUNCTION core.check_same_tenant_parent();",
@@ -75,7 +75,7 @@
     },
     "CSQL-009": {
       "purpose": "Attach tenant isolation trigger to core.organizations table",
-      "migration": "20260319144405_gifted_ultragirl",
+      "migration": "20260320124500_core_org_same_tenant_parent_trigger",
       "type": "TRIGGER",
       "justification": "Trigger attachments cannot be expressed in Drizzle schema",
       "rollback": "DROP TRIGGER trg_organizations_same_tenant_parent ON core.organizations;",
@@ -112,6 +112,36 @@
       "approvedBy": "dba-team",
       "approvedDate": "2026-03-20",
       "sqlLines": "117-145"
+    },
+    "CSQL-012": {
+      "purpose": "CHECK constraints on talent.skills for skillCode pattern and name/description max length (aligns with Zod); idempotent if funny_wild_pack already applied",
+      "migration": "20260320182000_skills_code_name_checks",
+      "type": "CONSTRAINT",
+      "justification": "Defense in depth when app layer is bypassed; matches skillInsertSchema rules",
+      "rollback": "ALTER TABLE talent.skills DROP CONSTRAINT IF EXISTS chk_skills_skill_code; ALTER TABLE talent.skills DROP CONSTRAINT IF EXISTS chk_skills_name_length; ALTER TABLE talent.skills DROP CONSTRAINT IF EXISTS chk_skills_description_length;",
+      "approvedBy": "schema-owners",
+      "approvedDate": "2026-03-20",
+      "sqlLines": "1-66"
+    },
+    "CSQL-013": {
+      "purpose": "Optional trigger function + BEFORE INSERT/UPDATE trigger when legacy employee_skills.proficiencyLevel exists; otherwise drops stub objects (no-op path after funny_wild_pack)",
+      "migration": "20260320174000_employee_skills_proficiency_backfill",
+      "type": "TRIGGER_FUNCTION",
+      "justification": "PL/pgSQL cannot be expressed in Drizzle; conditional for migration-order compatibility with 20260320111648_funny_wild_pack",
+      "rollback": "DROP TRIGGER IF EXISTS trg_sync_employee_skill_proficiency ON talent.employee_skills; DROP FUNCTION IF EXISTS talent.sync_employee_skill_proficiency();",
+      "approvedBy": "schema-owners",
+      "approvedDate": "2026-03-20",
+      "sqlLines": "57-104"
+    },
+    "CSQL-014": {
+      "purpose": "Enforce performance_review_goals.finalScore only when parent performance_reviews.status is COMPLETED or ACKNOWLEDGED; block demoting review status while child rows have finalScore",
+      "migration": "20260320125500_review_goal_final_score_triggers",
+      "type": "TRIGGER",
+      "justification": "Cross-table rule cannot be expressed with CHECK; complements ON DELETE RESTRICT on goalId for immutable evaluation history",
+      "rollback": "DROP TRIGGER IF EXISTS trg_review_goals_final_vs_parent_status ON talent.performance_review_goals; DROP TRIGGER IF EXISTS trg_reviews_status_vs_goal_finals ON talent.performance_reviews; DROP FUNCTION IF EXISTS talent.enforce_review_goal_final_score_vs_parent_status(); DROP FUNCTION IF EXISTS talent.enforce_review_status_vs_goal_final_scores();",
+      "approvedBy": "schema-owners",
+      "approvedDate": "2026-03-20",
+      "sqlLines": "1-999"
     }
   }
 }

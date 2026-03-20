@@ -11,7 +11,7 @@
  * - Marker presence in migrations
  * - Approval metadata completeness
  * 
- * @see docs/archive/custom-sql/CUSTOM_SQL_FILES_VALIDATION.md
+ * @see docs/SCHEMA_LOCKDOWN.md
  */
 
 import * as fs from "fs";

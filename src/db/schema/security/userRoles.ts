@@ -1,6 +1,6 @@
 import { integer, timestamp, index, uniqueIndex, foreignKey, primaryKey } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { timestampColumns } from "../_shared";
 import { tenants } from "../core/tenants";
 import { users, securitySchema } from "./users";

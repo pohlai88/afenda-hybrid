@@ -1,0 +1,2 @@
+ALTER TABLE "talent"."disciplinary_actions" ADD CONSTRAINT "chk_disciplinary_actions_issue_after_incident" CHECK ("issueDate" >= "incidentDate");--> statement-breakpoint
+ALTER TABLE "talent"."disciplinary_actions" ADD CONSTRAINT "chk_disciplinary_actions_expiry_after_issue" CHECK ("expiryDate" IS NULL OR "expiryDate" >= "issueDate");

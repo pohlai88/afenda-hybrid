@@ -6,7 +6,7 @@
  * - Properly aligned with column types
  * - Exported for use in application code
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

@@ -1,8 +1,8 @@
 import { defineConfig } from "drizzle-kit";
 import { config } from "dotenv";
 
-// Load environment variables from .env file
-config();
+// Prefer values from `.env` over inherited shell/system env so local URLs match the file.
+config({ override: true });
 
 export default defineConfig({
   dialect: "postgresql",

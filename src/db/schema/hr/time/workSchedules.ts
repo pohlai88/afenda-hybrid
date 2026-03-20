@@ -1,6 +1,6 @@
 import { integer, text, numeric, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { hrSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../../_shared";

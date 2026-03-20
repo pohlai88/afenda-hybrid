@@ -12,7 +12,7 @@
  * - Tier 2 (Operational): audit, observability
  * - Tier 3 (Domain): hr, finance, projects, etc.
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

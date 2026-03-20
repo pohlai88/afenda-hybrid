@@ -65,9 +65,29 @@ pnpm test:db
 # Run contract tests
 pnpm test:db:contracts
 
+# Recreate test DB + migrations (fixes half-migrated / "relation already exists")
+pnpm test:db:recreate
+
+# Same as recreate, then contract tests (living contract harness on a clean slate)
+pnpm test:db:contracts:clean
+
 # Run all tests
 pnpm test
 ```
+
+#### Resetting the test database
+
+Contract tests apply migrations in `beforeAll`. If a run stops halfway or the catalog is corrupted, Postgres can error with **`relation … already exists`** or similar. Fix it without touching Docker volumes:
+
+```bash
+pnpm test:db:recreate
+# or explicitly:
+pnpm exec tsx scripts/reset-test-db.ts
+```
+
+This connects to the `postgres` maintenance database, **drops and recreates** `afenda_test` (from `DATABASE_URL`), and runs **all Drizzle migrations** again. By default the script only allows database name `afenda_test`; set `AFENDA_FORCE_DB_RESET=1` if you use another dedicated test database name.
+
+To wipe the Docker volume entirely (container reset), use **`pnpm docker:test:reset`** instead.
 
 ### Validation & Quality Checks
 
@@ -146,7 +166,6 @@ d:\AFENDA-HYBRID\
 ├── docs/                     # Documentation
 │   ├── README.md            # Doc index
 │   ├── SCHEMA_LOCKDOWN.md   # Schema lockdown guide
-│   ├── archive/             # Legacy / one-off reports
 │   └── architecture/
 │       └── 01-db-first-guideline.md
 ├── .env                      # Environment variables (not in Git)
@@ -306,7 +325,6 @@ pnpm db:migrate
 - **Schema Lockdown**: [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)
 - **Database Guidelines**: [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)
 - **Custom SQL**: `src/db/schema/audit/CUSTOM_SQL.md`
-- **Legacy reports**: [docs/archive/](./archive/) (migration audits, environment setup logs, etc.)
 
 ---
 

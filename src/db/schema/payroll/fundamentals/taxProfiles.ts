@@ -1,6 +1,6 @@
-import { integer, text, date, smallint, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
+import { integer, text, date, smallint, varchar, jsonb, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { payrollSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
@@ -22,6 +22,13 @@ export const taxProfileStatusEnum = payrollSchema.enum("tax_profile_status", [..
 
 export const taxProfileStatusZodEnum = createSelectSchema(taxProfileStatusEnum);
 
+/** Which payroll tax engine / form family applies (filingStatus is US_FEDERAL-only). */
+export const taxRegimes = ["US_FEDERAL", "MY_LHDN", "GENERIC", "OTHER"] as const;
+
+export const taxRegimeEnum = payrollSchema.enum("tax_regime", [...taxRegimes]);
+
+export const taxRegimeZodEnum = createSelectSchema(taxRegimeEnum);
+
 export const taxProfiles = payrollSchema.table(
   "tax_profiles",
   {
@@ -29,6 +36,9 @@ export const taxProfiles = payrollSchema.table(
     tenantId: integer().notNull(),
     employeeId: integer().notNull(),
     taxYear: smallint().notNull(),
+    taxJurisdictionCountry: varchar({ length: 2 }).notNull().default("US"),
+    taxRegime: taxRegimeEnum().notNull().default("US_FEDERAL"),
+    regimePayload: jsonb().$type<Record<string, unknown>>(),
     taxIdNumber: text(),
     filingStatus: filingStatusEnum().notNull().default("SINGLE"),
     allowances: smallint().notNull().default(0),
@@ -46,6 +56,8 @@ export const taxProfiles = payrollSchema.table(
     index("idx_tax_profiles_employee").on(t.tenantId, t.employeeId),
     index("idx_tax_profiles_year").on(t.tenantId, t.taxYear),
     index("idx_tax_profiles_status").on(t.tenantId, t.status),
+    index("idx_tax_profiles_regime").on(t.tenantId, t.taxRegime),
+    index("idx_tax_profiles_country").on(t.tenantId, t.taxJurisdictionCountry),
     uniqueIndex("uq_tax_profiles_employee_year")
       .on(t.tenantId, t.employeeId, t.taxYear)
       .where(sql`${t.deletedAt} IS NULL AND ${t.status} = 'ACTIVE'`),
@@ -76,8 +88,12 @@ export type TaxProfileId = z.infer<typeof TaxProfileIdSchema>;
 
 export const taxProfileSelectSchema = createSelectSchema(taxProfiles);
 
+const regimePayloadSchema = z.record(z.string(), z.unknown()).optional();
+
 export const taxProfileInsertSchema = createInsertSchema(taxProfiles, {
   taxYear: z.number().int().min(2000).max(2100),
+  taxJurisdictionCountry: z.string().length(2).regex(/^[A-Z]{2}$/).optional(),
+  regimePayload: regimePayloadSchema,
   taxIdNumber: z.string().max(50).optional(),
   allowances: z.number().int().min(0).max(99),
   additionalWithholding: z.number().int().min(0).optional(),

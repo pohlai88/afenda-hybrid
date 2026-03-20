@@ -1,0 +1,3 @@
+CREATE INDEX "idx_performance_goals_target" ON "talent"."performance_goals" ("tenantId","targetDate");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_performance_goals_employee_title_start" ON "talent"."performance_goals" ("tenantId","employeeId","title","startDate") WHERE "deletedAt" IS NULL;--> statement-breakpoint
+CREATE INDEX "idx_performance_goals_active" ON "talent"."performance_goals" ("tenantId") WHERE "status" IN ('ACTIVE', 'ON_TRACK') AND "deletedAt" IS NULL;

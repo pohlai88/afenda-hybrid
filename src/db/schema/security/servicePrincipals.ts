@@ -1,7 +1,7 @@
 import { integer, text, uuid, timestamp, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
 import { sql } from "drizzle-orm";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../_shared";
 import { tenants } from "../core/tenants";
 import { securitySchema } from "./users";

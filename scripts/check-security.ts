@@ -9,7 +9,7 @@
  * - Privilege escalation patterns
  * - Audit logging coverage
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

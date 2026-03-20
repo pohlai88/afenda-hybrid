@@ -1,10 +1,11 @@
-import { integer, text, date, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
+import { integer, text, date, numeric, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { recruitmentSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
 import { tenants } from "../../core/tenants";
+import { currencies } from "../../core/currencies";
 
 /**
  * Candidates - Applicant profiles.
@@ -23,6 +24,14 @@ export const candidateStatusEnum = recruitmentSchema.enum("candidate_status", [.
 
 export const candidateStatusZodEnum = createSelectSchema(candidateStatusEnum);
 
+export const expectedSalaryPeriods = ["MONTHLY", "BIWEEKLY", "WEEKLY", "SEMI_MONTHLY", "ANNUAL"] as const;
+
+export const expectedSalaryPeriodEnum = recruitmentSchema.enum("expected_salary_period", [
+  ...expectedSalaryPeriods,
+]);
+
+export const expectedSalaryPeriodZodEnum = createSelectSchema(expectedSalaryPeriodEnum);
+
 export const candidates = recruitmentSchema.table(
   "candidates",
   {
@@ -40,7 +49,11 @@ export const candidates = recruitmentSchema.table(
     referredBy: integer(),
     currentCompany: text(),
     currentTitle: text(),
+    /** @deprecated Use expectedSalaryAmount + currency + period */
     expectedSalary: text(),
+    expectedSalaryAmount: numeric({ precision: 14, scale: 2 }),
+    expectedSalaryCurrencyId: integer(),
+    expectedSalaryPeriod: expectedSalaryPeriodEnum(),
     availableFrom: date(),
     personId: integer(),
     convertedEmployeeId: integer(),
@@ -67,6 +80,13 @@ export const candidates = recruitmentSchema.table(
     })
       .onDelete("restrict")
       .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.expectedSalaryCurrencyId],
+      foreignColumns: [currencies.currencyId],
+      name: "fk_candidates_expected_salary_currency",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
   ]
 );
 
@@ -87,6 +107,7 @@ export const candidateInsertSchema = createInsertSchema(candidates, {
   currentCompany: z.string().max(200).optional(),
   currentTitle: z.string().max(200).optional(),
   expectedSalary: z.string().max(100).optional(),
+  expectedSalaryPeriod: expectedSalaryPeriodZodEnum.optional(),
 });
 
 export const candidateUpdateSchema = createUpdateSchema(candidates);

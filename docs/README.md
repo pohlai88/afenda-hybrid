@@ -1,6 +1,6 @@
 # Documentation index
 
-Start here for **maintained** documentation. Historical audits and one-off reports live under **`docs/archive/`** after cleanup (see **`DOCUMENTATION_CLEANUP_PLAN.md`**).
+Start here for project documentation. Older audits and one-off reports were removed from the tree; use git history if you need them.
 
 ## Database & schema
 
@@ -11,6 +11,9 @@ Start here for **maintained** documentation. Historical audits and one-off repor
 | [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md) | DB-first guidelines (incl. custom SQL §8.2) |
 | [../src/db/README.md](../src/db/README.md) | DB package overview & script pointers |
 | [../src/db/schema/audit/CUSTOM_SQL.md](../src/db/schema/audit/CUSTOM_SQL.md) | Custom SQL patterns & snippets |
+| [hr-schema-audit-matrix.md](./hr-schema-audit-matrix.md) | 108-table HCM audit rubric (Pass/Partial/Fail) |
+| [hr-data-dictionary.md](./hr-data-dictionary.md) | PII tiers, payroll statutory keys, go-live fields |
+| [HR_REPORTING_POLICY.md](./HR_REPORTING_POLICY.md) | `managerId` vs `reporting_lines` source of truth |
 
 ## CI & quality gates
 
@@ -30,15 +33,3 @@ Start here for **maintained** documentation. Historical audits and one-off repor
 |-----|-------------|
 | [patterns/README.md](./patterns/README.md) | Pattern index |
 | [patterns/case-insensitive-uniqueness.md](./patterns/case-insensitive-uniqueness.md) | Example pattern |
-
-## Archive (legacy)
-
-| Location | Description |
-|----------|-------------|
-| [archive/README.md](./archive/README.md) | Historical audits & one-off reports (not maintained) |
-
-## Cleanup
-
-| Doc | Description |
-|-----|-------------|
-| [DOCUMENTATION_CLEANUP_PLAN.md](./DOCUMENTATION_CLEANUP_PLAN.md) | Original cleanup plan (executed March 2026) |

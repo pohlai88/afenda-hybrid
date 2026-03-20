@@ -4,7 +4,7 @@
  * Validates that custom SQL blocks in migrations are syntactically correct
  * by running them through PostgreSQL's parser (requires database connection).
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

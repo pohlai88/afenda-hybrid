@@ -1,0 +1,145 @@
+import { and, eq, isNull } from "drizzle-orm";
+import type { Database } from "../db";
+import { competencyFrameworks } from "../schema/talent/fundamentals/competencyFrameworks";
+import { competencySkills } from "../schema/talent/fundamentals/competencySkills";
+import { skills } from "../schema/talent/fundamentals/skills";
+import { employeeSkills } from "../schema/talent/operations/employeeSkills";
+import { employees } from "../schema/hr/fundamentals/employees";
+import { isProficiencyCode, type ProficiencyCode } from "./proficiencyScale";
+
+export type FrameworkSkillHolder = {
+  employeeId: number;
+  employeeCode: string;
+  employeeStatus: string;
+  proficiencyLevel: ProficiencyCode;
+};
+
+export type FrameworkSkillRequirementWithHolders = {
+  competencySkillId: number;
+  skillId: number;
+  skillCode: string;
+  skillName: string;
+  requiredLevel: number;
+  weight: number | null;
+  holders: FrameworkSkillHolder[];
+};
+
+export type FrameworkSkillsWithHolders = {
+  frameworkId: number;
+  frameworkCode: string;
+  frameworkName: string;
+  status: string;
+  requirements: FrameworkSkillRequirementWithHolders[];
+};
+
+/**
+ * Returns a framework with required skills and active employee skill holders.
+ */
+export async function getFrameworkSkillsWithHolders(
+  db: Database,
+  tenantId: number,
+  frameworkId: number
+): Promise<FrameworkSkillsWithHolders | null> {
+  const rows = await db
+    .select({
+      frameworkId: competencyFrameworks.frameworkId,
+      frameworkCode: competencyFrameworks.frameworkCode,
+      frameworkName: competencyFrameworks.name,
+      frameworkStatus: competencyFrameworks.status,
+      competencySkillId: competencySkills.competencySkillId,
+      requiredLevel: competencySkills.requiredLevel,
+      weight: competencySkills.weight,
+      skillId: skills.skillId,
+      skillCode: skills.skillCode,
+      skillName: skills.name,
+      employeeId: employeeSkills.employeeId,
+      proficiencyLevel: employeeSkills.proficiency,
+      employeeCode: employees.employeeCode,
+      employeeStatus: employees.status,
+    })
+    .from(competencyFrameworks)
+    .innerJoin(
+      competencySkills,
+      and(
+        eq(competencySkills.tenantId, competencyFrameworks.tenantId),
+        eq(competencySkills.frameworkId, competencyFrameworks.frameworkId),
+        isNull(competencySkills.deletedAt)
+      )
+    )
+    .innerJoin(
+      skills,
+      and(
+        eq(skills.tenantId, competencySkills.tenantId),
+        eq(skills.skillId, competencySkills.skillId),
+        isNull(skills.deletedAt)
+      )
+    )
+    .leftJoin(
+      employeeSkills,
+      and(
+        eq(employeeSkills.tenantId, competencySkills.tenantId),
+        eq(employeeSkills.skillId, competencySkills.skillId),
+        isNull(employeeSkills.deletedAt)
+      )
+    )
+    .leftJoin(
+      employees,
+      and(
+        eq(employees.tenantId, employeeSkills.tenantId),
+        eq(employees.employeeId, employeeSkills.employeeId),
+        isNull(employees.deletedAt)
+      )
+    )
+    .where(
+      and(
+        eq(competencyFrameworks.tenantId, tenantId),
+        eq(competencyFrameworks.frameworkId, frameworkId),
+        isNull(competencyFrameworks.deletedAt)
+      )
+    );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const first = rows[0];
+  const requirementMap = new Map<number, FrameworkSkillRequirementWithHolders>();
+
+  for (const row of rows) {
+    const existing = requirementMap.get(row.competencySkillId);
+    if (!existing) {
+      requirementMap.set(row.competencySkillId, {
+        competencySkillId: row.competencySkillId,
+        skillId: row.skillId,
+        skillCode: row.skillCode,
+        skillName: row.skillName,
+        requiredLevel: row.requiredLevel,
+        weight: row.weight,
+        holders: [],
+      });
+    }
+
+    if (
+      row.employeeId !== null &&
+      row.employeeCode !== null &&
+      row.employeeStatus !== null &&
+      row.proficiencyLevel !== null &&
+      isProficiencyCode(row.proficiencyLevel)
+    ) {
+      requirementMap.get(row.competencySkillId)!.holders.push({
+        employeeId: row.employeeId,
+        employeeCode: row.employeeCode,
+        employeeStatus: row.employeeStatus,
+        proficiencyLevel: row.proficiencyLevel,
+      });
+    }
+  }
+
+  return {
+    frameworkId: first.frameworkId,
+    frameworkCode: first.frameworkCode,
+    frameworkName: first.frameworkName,
+    status: first.frameworkStatus,
+    requirements: [...requirementMap.values()],
+  };
+}

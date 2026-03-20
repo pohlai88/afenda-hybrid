@@ -101,7 +101,7 @@ for (const file of schemaFiles) {
     const content = fs.readFileSync(file, "utf-8");
     const imports = extractImports(content);
     importMap.set(file, imports);
-  } catch (error) {
+  } catch {
     addIssue("warning", "files", `Could not read file: ${file}`, file);
   }
 }
@@ -121,7 +121,7 @@ try {
 }
 
 // Helper functions
-function globFiles(dir: string, pattern: string): string[] {
+function globFiles(dir: string, _pattern: string): string[] {
   const files: string[] = [];
   function walk(currentDir: string) {
     const entries = fs.readdirSync(currentDir, { withFileTypes: true });

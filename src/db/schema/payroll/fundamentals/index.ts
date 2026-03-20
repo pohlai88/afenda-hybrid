@@ -1,3 +1,5 @@
+export * from "./statutorySchemes";
+export * from "./statutorySchemeRates";
 export * from "./compensationPackages";
 export * from "./payComponents";
 export * from "./payGradeStructures";

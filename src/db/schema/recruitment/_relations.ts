@@ -61,6 +61,11 @@ export const recruitmentRelations = defineRelations(
         from: r.candidates.candidateId,
         to: r.backgroundChecks.candidateId,
       }),
+      expectedSalaryCurrency: r.one.currencies({
+        from: r.candidates.expectedSalaryCurrencyId,
+        to: r.currencies.currencyId,
+        optional: true,
+      }),
     },
     jobRequisitions: {
       tenant: r.one.tenants({

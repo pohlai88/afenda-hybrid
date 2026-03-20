@@ -1,0 +1,4 @@
+ALTER TABLE "talent"."performance_goals" ALTER COLUMN "title" SET DATA TYPE varchar(200) USING "title"::varchar(200);--> statement-breakpoint
+ALTER TABLE "talent"."performance_goals" ALTER COLUMN "description" SET DATA TYPE varchar(2000) USING "description"::varchar(2000);--> statement-breakpoint
+ALTER TABLE "talent"."performance_goals" ADD CONSTRAINT "chk_performance_goals_completed_window" CHECK ("completedDate" IS NULL OR ("completedDate" >= "startDate" AND "completedDate" <= "targetDate"));--> statement-breakpoint
+ALTER TABLE "talent"."performance_goals" DROP CONSTRAINT "chk_performance_goals_weight", ADD CONSTRAINT "chk_performance_goals_weight" CHECK ("weight" IS NULL OR ("weight" >= 1 AND "weight" <= 10));

@@ -12,7 +12,7 @@
  * - Changing enum values (removing)
  * - Changing FK constraints
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

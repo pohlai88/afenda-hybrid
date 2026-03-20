@@ -237,29 +237,39 @@ function validateMigrations(): {
   }
   
   for (const migration of migrations) {
-    // 1. Check format (snapshot.json + migration.sql exist)
-    if (!migration.hasSnapshot || !migration.hasSql) {
+    // 1. Check format: migration.sql required; snapshot.json required unless excepted (SQL-only hand migrations)
+    if (!migration.hasSql) {
       errors.push({
         migration: migration.name,
         rule: "migration-format",
-        message: migration.hasSql 
-          ? "Missing snapshot.json"
-          : migration.hasSnapshot
-          ? "Missing migration.sql"
-          : "Missing both snapshot.json and migration.sql",
+        message: migration.hasSnapshot ? "Missing migration.sql" : "Missing both snapshot.json and migration.sql",
         severity: "error",
-        suggestion: "Migration must have both snapshot.json and migration.sql files",
+        suggestion: "Add migration.sql or generate with drizzle-kit",
       });
       continue;
     }
-    
+
+    if (!migration.hasSnapshot && !isExcepted(exceptions, migration.name, "migration-format")) {
+      errors.push({
+        migration: migration.name,
+        rule: "migration-format",
+        message: "Missing snapshot.json",
+        severity: "error",
+        suggestion:
+          "Add snapshot.json from drizzle-kit generate, or add scripts/config/migration-exceptions.json rule migration-format for intentional SQL-only migrations",
+      });
+      continue;
+    }
+
     // Read files
     let sql: string;
-    let snapshot: unknown;
-    
+    let snapshot: unknown = {};
+
     try {
       sql = fs.readFileSync(migration.sqlPath, "utf-8");
-      snapshot = JSON.parse(fs.readFileSync(migration.snapshotPath, "utf-8"));
+      if (migration.hasSnapshot) {
+        snapshot = JSON.parse(fs.readFileSync(migration.snapshotPath, "utf-8"));
+      }
     } catch (error) {
       errors.push({
         migration: migration.name,
@@ -270,40 +280,37 @@ function validateMigrations(): {
       continue;
     }
     
-    // 2. Checksum validation (detect manual edits) - skip in quick mode
+    // 2. Detect hand-written migrations (always enforced, including --quick)
+    const drizzleSql = extractDrizzleGeneratedSql(sql);
+    const hasDrizzlePatterns = sql.includes("--> statement-breakpoint") ||
+                               sql.includes("CREATE SCHEMA") ||
+                               sql.includes("CREATE TYPE");
+    if (!hasDrizzlePatterns && drizzleSql.length > 100) {
+      if (!isExcepted(exceptions, migration.name, "possible-hand-written")) {
+        errors.push({
+          migration: migration.name,
+          rule: "possible-hand-written",
+          message: "Manual migration SQL is prohibited by default",
+          severity: "error",
+          suggestion: "Generate with 'drizzle-kit generate' or add an explicit exception in scripts/config/migration-exceptions.json",
+        });
+      }
+    }
+    
+    // 3. Checksum validation (detect manual edits) - skip in quick mode
     if (!quick) {
-      const drizzleSql = extractDrizzleGeneratedSql(sql);
       const _drizzleChecksum = calculateSqlChecksum(drizzleSql);
       const _snapshotChecksum = calculateSnapshotChecksum(snapshot);
       
       // Note: This is a simplified check. In practice, you'd need to regenerate
       // SQL from snapshot and compare. For now, we just check if SQL structure
       // matches snapshot structure.
-      
-      // Check for obvious manual edits (like hand-written CREATE TABLE without Drizzle patterns)
-      const hasDrizzlePatterns = sql.includes("--> statement-breakpoint") || 
-                                  sql.includes("CREATE SCHEMA") ||
-                                  sql.includes("CREATE TYPE");
-      
-      if (!hasDrizzlePatterns && drizzleSql.length > 100) {
-        // Large SQL without Drizzle patterns suggests hand-written migration
-        // Check if this migration is excepted (intentionally hand-written custom SQL)
-        if (!isExcepted(exceptions, migration.name, "possible-hand-written")) {
-          warnings.push({
-            migration: migration.name,
-            rule: "possible-hand-written",
-            message: "Migration SQL doesn't contain typical Drizzle patterns",
-            suggestion: "Ensure migration was generated with 'drizzle-kit generate', or add to migration-exceptions.json if intentional",
-          });
-        }
-      }
     }
     
-    // 3. Custom SQL marker validation
+    // 4. Custom SQL marker validation
     const customSqlBlocks = extractCustomSqlBlocks(sql);
     
     // Check for unmarked custom SQL patterns
-    const drizzleSql = extractDrizzleGeneratedSql(sql);
     
     // Detect common custom SQL patterns that should be marked
     const customPatterns = [

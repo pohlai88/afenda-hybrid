@@ -11,6 +11,10 @@ dist/
 .env.local
 .env.*.local
 
+# Cursor agent/session notes (not product documentation)
+.cursor/*.md
+.cursor/plans/
+
 # IDE
 .idea/
 *.swp

@@ -11,13 +11,17 @@ import { competencyFrameworks } from "./fundamentals/competencyFrameworks";
 import { competencySkills } from "./fundamentals/competencySkills";
 import { talentPools } from "./fundamentals/talentPools";
 import { employeeSkills } from "./operations/employeeSkills";
+import { employeeCertifications } from "./operations/employeeCertifications";
 import { performanceReviews } from "./operations/performanceReviews";
 import { performanceGoals } from "./operations/performanceGoals";
+import { performanceReviewGoals } from "./operations/performanceReviewGoals";
 import { goalTracking } from "./operations/goalTracking";
+import { talentPoolMemberships } from "./operations/talentPoolMemberships";
 import { promotionRecords } from "./operations/promotionRecords";
 import { successionPlans } from "./operations/successionPlans";
 import { disciplinaryActions } from "./operations/disciplinaryActions";
 import { grievanceRecords } from "./operations/grievanceRecords";
+import { caseLinks } from "./operations/caseLinks";
 
 export const talentRelations = defineRelations(
   {
@@ -33,13 +37,17 @@ export const talentRelations = defineRelations(
     competencySkills,
     talentPools,
     employeeSkills,
+    employeeCertifications,
     performanceReviews,
     performanceGoals,
+    performanceReviewGoals,
     goalTracking,
+    talentPoolMemberships,
     promotionRecords,
     successionPlans,
     disciplinaryActions,
     grievanceRecords,
+    caseLinks,
   },
   (r) => ({
     skills: {
@@ -72,6 +80,10 @@ export const talentRelations = defineRelations(
         from: r.certifications.tenantId,
         to: r.tenants.tenantId,
       }),
+      employeeCertifications: r.many.employeeCertifications({
+        from: r.certifications.certificationId,
+        to: r.employeeCertifications.certificationId,
+      }),
     },
     competencyFrameworks: {
       tenant: r.one.tenants({
@@ -94,6 +106,10 @@ export const talentRelations = defineRelations(
       }),
     },
     competencySkills: {
+      tenant: r.one.tenants({
+        from: r.competencySkills.tenantId,
+        to: r.tenants.tenantId,
+      }),
       framework: r.one.competencyFrameworks({
         from: r.competencySkills.frameworkId,
         to: r.competencyFrameworks.frameworkId,
@@ -107,6 +123,84 @@ export const talentRelations = defineRelations(
       tenant: r.one.tenants({
         from: r.talentPools.tenantId,
         to: r.tenants.tenantId,
+      }),
+      memberships: r.many.talentPoolMemberships({
+        from: r.talentPools.talentPoolId,
+        to: r.talentPoolMemberships.talentPoolId,
+      }),
+    },
+    employees: {
+      employeeSkills: r.many.employeeSkills({
+        from: r.employees.employeeId,
+        to: r.employeeSkills.employeeId,
+      }),
+      employeeCertifications: r.many.employeeCertifications({
+        from: r.employees.employeeId,
+        to: r.employeeCertifications.employeeId,
+      }),
+      performanceReviews: r.many.performanceReviews({
+        from: r.employees.employeeId,
+        to: r.performanceReviews.employeeId,
+      }),
+      performanceReviewsAsReviewer: r.many.performanceReviews({
+        from: r.employees.employeeId,
+        to: r.performanceReviews.reviewerId,
+        alias: "performance_reviews_as_reviewer",
+      }),
+      performanceGoals: r.many.performanceGoals({
+        from: r.employees.employeeId,
+        to: r.performanceGoals.employeeId,
+      }),
+      talentPoolMemberships: r.many.talentPoolMemberships({
+        from: r.employees.employeeId,
+        to: r.talentPoolMemberships.employeeId,
+      }),
+      promotionRecords: r.many.promotionRecords({
+        from: r.employees.employeeId,
+        to: r.promotionRecords.employeeId,
+      }),
+      successionPlansAsSuccessor: r.many.successionPlans({
+        from: r.employees.employeeId,
+        to: r.successionPlans.successorId,
+        alias: "succession_as_successor",
+      }),
+      successionPlansAsIncumbent: r.many.successionPlans({
+        from: r.employees.employeeId,
+        to: r.successionPlans.incumbentId,
+        alias: "succession_as_incumbent",
+      }),
+      grievanceRecords: r.many.grievanceRecords({
+        from: r.employees.employeeId,
+        to: r.grievanceRecords.employeeId,
+      }),
+      grievanceRecordsAgainst: r.many.grievanceRecords({
+        from: r.employees.employeeId,
+        to: r.grievanceRecords.againstEmployeeId,
+        alias: "grievance_against_employee",
+      }),
+      grievanceRecordsAssigned: r.many.grievanceRecords({
+        from: r.employees.employeeId,
+        to: r.grievanceRecords.assignedTo,
+        alias: "grievance_assigned_to",
+      }),
+      grievanceRecordsResolved: r.many.grievanceRecords({
+        from: r.employees.employeeId,
+        to: r.grievanceRecords.resolvedBy,
+        alias: "grievance_resolved_by",
+      }),
+      disciplinaryActions: r.many.disciplinaryActions({
+        from: r.employees.employeeId,
+        to: r.disciplinaryActions.employeeId,
+      }),
+      disciplinaryActionsIssued: r.many.disciplinaryActions({
+        from: r.employees.employeeId,
+        to: r.disciplinaryActions.issuedBy,
+        alias: "disciplinary_issued_by",
+      }),
+      disciplinaryActionsWitnessed: r.many.disciplinaryActions({
+        from: r.employees.employeeId,
+        to: r.disciplinaryActions.witnessId,
+        alias: "disciplinary_witness",
       }),
     },
     employeeSkills: {
@@ -129,6 +223,26 @@ export const talentRelations = defineRelations(
         alias: "skill_assessor",
       }),
     },
+    employeeCertifications: {
+      tenant: r.one.tenants({
+        from: r.employeeCertifications.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      employee: r.one.employees({
+        from: r.employeeCertifications.employeeId,
+        to: r.employees.employeeId,
+      }),
+      certification: r.one.certifications({
+        from: r.employeeCertifications.certificationId,
+        to: r.certifications.certificationId,
+      }),
+      verifier: r.one.employees({
+        from: r.employeeCertifications.verifiedBy,
+        to: r.employees.employeeId,
+        optional: true,
+        alias: "certification_verifier",
+      }),
+    },
     performanceReviews: {
       tenant: r.one.tenants({
         from: r.performanceReviews.tenantId,
@@ -142,6 +256,10 @@ export const talentRelations = defineRelations(
         from: r.performanceReviews.reviewerId,
         to: r.employees.employeeId,
         alias: "performance_reviewer",
+      }),
+      reviewGoals: r.many.performanceReviewGoals({
+        from: r.performanceReviews.reviewId,
+        to: r.performanceReviewGoals.reviewId,
       }),
     },
     performanceGoals: {
@@ -157,11 +275,49 @@ export const talentRelations = defineRelations(
         from: r.performanceGoals.goalId,
         to: r.goalTracking.goalId,
       }),
+      reviewGoals: r.many.performanceReviewGoals({
+        from: r.performanceGoals.goalId,
+        to: r.performanceReviewGoals.goalId,
+      }),
+    },
+    performanceReviewGoals: {
+      tenant: r.one.tenants({
+        from: r.performanceReviewGoals.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      review: r.one.performanceReviews({
+        from: r.performanceReviewGoals.reviewId,
+        to: r.performanceReviews.reviewId,
+      }),
+      goal: r.one.performanceGoals({
+        from: r.performanceReviewGoals.goalId,
+        to: r.performanceGoals.goalId,
+      }),
     },
     goalTracking: {
       goal: r.one.performanceGoals({
         from: r.goalTracking.goalId,
         to: r.performanceGoals.goalId,
+      }),
+    },
+    talentPoolMemberships: {
+      tenant: r.one.tenants({
+        from: r.talentPoolMemberships.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      pool: r.one.talentPools({
+        from: r.talentPoolMemberships.talentPoolId,
+        to: r.talentPools.talentPoolId,
+      }),
+      employee: r.one.employees({
+        from: r.talentPoolMemberships.employeeId,
+        to: r.employees.employeeId,
+      }),
+      nominator: r.one.employees({
+        from: r.talentPoolMemberships.nominatedBy,
+        to: r.employees.employeeId,
+        optional: true,
+        alias: "pool_nominator",
       }),
     },
     promotionRecords: {
@@ -228,26 +384,6 @@ export const talentRelations = defineRelations(
         alias: "succession_successor",
       }),
     },
-    disciplinaryActions: {
-      tenant: r.one.tenants({
-        from: r.disciplinaryActions.tenantId,
-        to: r.tenants.tenantId,
-      }),
-      employee: r.one.employees({
-        from: r.disciplinaryActions.employeeId,
-        to: r.employees.employeeId,
-      }),
-      issuer: r.one.employees({
-        from: r.disciplinaryActions.issuedBy,
-        to: r.employees.employeeId,
-        alias: "disciplinary_issuer",
-      }),
-      witness: r.one.employees({
-        from: r.disciplinaryActions.witnessId,
-        to: r.employees.employeeId,
-        optional: true,
-      }),
-    },
     grievanceRecords: {
       tenant: r.one.tenants({
         from: r.grievanceRecords.tenantId,
@@ -273,6 +409,48 @@ export const talentRelations = defineRelations(
         from: r.grievanceRecords.resolvedBy,
         to: r.employees.employeeId,
         optional: true,
+      }),
+      outgoingCaseLinks: r.many.caseLinks({
+        from: r.grievanceRecords.grievanceRecordId,
+        to: r.caseLinks.sourceId,
+      }),
+      incomingCaseLinks: r.many.caseLinks({
+        from: r.grievanceRecords.grievanceRecordId,
+        to: r.caseLinks.targetId,
+      }),
+    },
+    disciplinaryActions: {
+      tenant: r.one.tenants({
+        from: r.disciplinaryActions.tenantId,
+        to: r.tenants.tenantId,
+      }),
+      employee: r.one.employees({
+        from: r.disciplinaryActions.employeeId,
+        to: r.employees.employeeId,
+      }),
+      issuer: r.one.employees({
+        from: r.disciplinaryActions.issuedBy,
+        to: r.employees.employeeId,
+        alias: "disciplinary_issuer",
+      }),
+      witness: r.one.employees({
+        from: r.disciplinaryActions.witnessId,
+        to: r.employees.employeeId,
+        optional: true,
+      }),
+      outgoingCaseLinks: r.many.caseLinks({
+        from: r.disciplinaryActions.disciplinaryActionId,
+        to: r.caseLinks.sourceId,
+      }),
+      incomingCaseLinks: r.many.caseLinks({
+        from: r.disciplinaryActions.disciplinaryActionId,
+        to: r.caseLinks.targetId,
+      }),
+    },
+    caseLinks: {
+      tenant: r.one.tenants({
+        from: r.caseLinks.tenantId,
+        to: r.tenants.tenantId,
       }),
     },
   })

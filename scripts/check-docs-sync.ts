@@ -7,7 +7,7 @@
  * - Column documentation is up to date
  * - Custom SQL documentation matches registry
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

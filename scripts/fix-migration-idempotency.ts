@@ -17,7 +17,7 @@ let content = fs.readFileSync(migrationFile, "utf-8");
 
 // Replace CREATE TYPE statements with idempotent versions
 // Pattern: CREATE TYPE "schema"."type_name" AS ENUM(...);
-const createTypeRegex = /CREATE TYPE "([^"]+)"\.\"([^"]+)" AS ENUM\(([^)]+)\);/g;
+const createTypeRegex = /CREATE TYPE "([^"]+)"\."([^"]+)" AS ENUM\(([^)]+)\);/g;
 
 content = content.replace(createTypeRegex, (match, schema, typeName, enumValues) => {
   return `DO $$ 
@@ -30,7 +30,7 @@ END $$;--> statement-breakpoint`;
 
 // Replace ALTER TYPE ADD VALUE statements with idempotent versions
 // Pattern: ALTER TYPE "schema"."type_name" ADD VALUE 'value';
-const alterTypeRegex = /ALTER TYPE "([^"]+)"\.\"([^"]+)" ADD VALUE '([^']+)'(\s+BEFORE\s+'([^']+)')?;/g;
+const alterTypeRegex = /ALTER TYPE "([^"]+)"\."([^"]+)" ADD VALUE '([^']+)'(\s+BEFORE\s+'([^']+)')?;/g;
 
 content = content.replace(alterTypeRegex, (match, schema, typeName, newValue, beforeClause, beforeValue) => {
   const beforePart = beforeClause ? ` BEFORE '${beforeValue}'` : '';

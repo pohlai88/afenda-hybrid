@@ -10,7 +10,7 @@
  * - Bidirectional relations exist where appropriate
  * - Relations reference correct tables
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md Gap 6
+ * @see docs/CI_GATES.md
  */
 
 import * as fs from "fs";

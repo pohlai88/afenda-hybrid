@@ -1,0 +1,2 @@
+CREATE INDEX "idx_employee_skills_employee_proficiency" ON "talent"."employee_skills" ("tenantId","employeeId","proficiency");--> statement-breakpoint
+ALTER TABLE "talent"."employee_skills" DROP CONSTRAINT "chk_employee_skills_experience", ADD CONSTRAINT "chk_employee_skills_experience" CHECK ("yearsOfExperience" IS NULL OR ("yearsOfExperience" >= 0 AND "yearsOfExperience" <= 50));

@@ -20,6 +20,7 @@ import { leaveBalances } from "./time/leaveBalances";
 import { tenants } from "../core/tenants";
 import { organizations } from "../core/organizations";
 import { locations } from "../core/locations";
+import { legalEntities } from "../core/legalEntities";
 
 export const hrRelations = defineRelations(
   {
@@ -44,6 +45,7 @@ export const hrRelations = defineRelations(
     tenants,
     organizations,
     locations,
+    legalEntities,
   },
   (r) => ({
     persons: {
@@ -186,6 +188,11 @@ export const hrRelations = defineRelations(
       location: r.one.locations({
         from: r.employees.locationId,
         to: r.locations.locationId,
+        optional: true,
+      }),
+      payrollLegalEntity: r.one.legalEntities({
+        from: r.employees.payrollLegalEntityId,
+        to: r.legalEntities.legalEntityId,
         optional: true,
       }),
       attendanceLogs: r.many.attendanceLogs({

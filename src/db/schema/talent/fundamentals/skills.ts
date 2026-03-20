@@ -1,6 +1,6 @@
-import { integer, text, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
+import { integer, text, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../../_shared";
@@ -58,6 +58,18 @@ export const skills = talentSchema.table(
     })
       .onDelete("restrict")
       .onUpdate("cascade"),
+    check(
+      "chk_skills_skill_code",
+      sql`${t.skillCode} ~ '^[A-Za-z0-9_-]+$' AND char_length(${t.skillCode}) >= 2 AND char_length(${t.skillCode}) <= 50`
+    ),
+    check(
+      "chk_skills_name_length",
+      sql`char_length(${t.name}) >= 1 AND char_length(${t.name}) <= 200`
+    ),
+    check(
+      "chk_skills_description_length",
+      sql`(${t.description} IS NULL OR char_length(${t.description}) <= 1000)`
+    ),
   ]
 );
 

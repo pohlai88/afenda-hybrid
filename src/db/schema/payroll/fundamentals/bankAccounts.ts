@@ -1,6 +1,6 @@
 import { integer, text, boolean, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { payrollSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
@@ -25,6 +25,9 @@ export const bankAccounts = payrollSchema.table(
     tenantId: integer().notNull(),
     employeeId: integer().notNull(),
     bankName: text().notNull(),
+    /** Country-specific bank identifier (e.g. BIC branch bank code) */
+    bankCode: text(),
+    branchCode: text(),
     branchName: text(),
     accountNumber: text().notNull(),
     accountHolderName: text().notNull(),
@@ -69,6 +72,8 @@ export const bankAccountSelectSchema = createSelectSchema(bankAccounts);
 
 export const bankAccountInsertSchema = createInsertSchema(bankAccounts, {
   bankName: z.string().min(1).max(200),
+  bankCode: z.string().max(32).optional(),
+  branchCode: z.string().max(32).optional(),
   branchName: z.string().max(200).optional(),
   accountNumber: z.string().min(1).max(50),
   accountHolderName: z.string().min(1).max(200),

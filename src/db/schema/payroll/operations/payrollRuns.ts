@@ -1,12 +1,13 @@
 import { integer, text, date, numeric, timestamp, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { payrollSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
 import { tenants } from "../../core/tenants";
 import { currencies } from "../../core/currencies";
 import { payrollPeriods } from "./payrollPeriods";
+import { legalEntities } from "../../core/legalEntities";
 
 /**
  * Payroll Runs - Payroll execution batches.
@@ -25,6 +26,7 @@ export const payrollRuns = payrollSchema.table(
     payrollRunId: integer().primaryKey().generatedAlwaysAsIdentity(),
     tenantId: integer().notNull(),
     payrollPeriodId: integer().notNull(),
+    legalEntityId: integer(),
     runCode: text().notNull(),
     runDate: date().notNull(),
     totalGross: numeric({ precision: 14, scale: 2 }).notNull().default("0"),
@@ -47,6 +49,7 @@ export const payrollRuns = payrollSchema.table(
     index("idx_payroll_runs_period").on(t.tenantId, t.payrollPeriodId),
     index("idx_payroll_runs_date").on(t.tenantId, t.runDate),
     index("idx_payroll_runs_status").on(t.tenantId, t.status),
+    index("idx_payroll_runs_legal_entity").on(t.tenantId, t.legalEntityId),
     uniqueIndex("uq_payroll_runs_code")
       .on(t.tenantId, sql`lower(${t.runCode})`)
       .where(sql`${t.deletedAt} IS NULL`),
@@ -61,6 +64,13 @@ export const payrollRuns = payrollSchema.table(
       columns: [t.payrollPeriodId],
       foreignColumns: [payrollPeriods.payrollPeriodId],
       name: "fk_payroll_runs_period",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.legalEntityId],
+      foreignColumns: [legalEntities.legalEntityId],
+      name: "fk_payroll_runs_legal_entity",
     })
       .onDelete("restrict")
       .onUpdate("cascade"),

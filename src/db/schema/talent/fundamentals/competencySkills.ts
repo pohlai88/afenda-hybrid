@@ -1,9 +1,10 @@
 import { integer, smallint, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
-import { timestampColumns, softDeleteColumns } from "../../_shared";
+import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
+import { tenants } from "../../core/tenants";
 import { competencyFrameworks } from "./competencyFrameworks";
 import { skills } from "./skills";
 
@@ -14,20 +15,28 @@ export const competencySkills = talentSchema.table(
   "competency_skills",
   {
     competencySkillId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     frameworkId: integer().notNull(),
     skillId: integer().notNull(),
-    requiredLevel: smallint().notNull().default(3),
-    isRequired: integer().notNull().default(1),
+    requiredLevel: smallint().notNull(),
     weight: smallint().default(1),
     ...timestampColumns,
     ...softDeleteColumns,
+    ...auditColumns,
   },
   (t) => [
-    index("idx_competency_skills_framework").on(t.frameworkId),
-    index("idx_competency_skills_skill").on(t.skillId),
+    index("idx_competency_skills_framework").on(t.tenantId, t.frameworkId),
+    index("idx_competency_skills_skill").on(t.tenantId, t.skillId),
     uniqueIndex("uq_competency_skills_framework_skill")
-      .on(t.frameworkId, t.skillId)
+      .on(t.tenantId, t.frameworkId, t.skillId)
       .where(sql`${t.deletedAt} IS NULL`),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_competency_skills_tenant",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.frameworkId],
       foreignColumns: [competencyFrameworks.frameworkId],
@@ -60,7 +69,7 @@ export const competencySkillSelectSchema = createSelectSchema(competencySkills);
 
 export const competencySkillInsertSchema = createInsertSchema(competencySkills, {
   requiredLevel: z.number().int().min(1).max(5),
-  weight: z.number().int().min(1).max(10).optional(),
+  weight: z.number().int().min(1).max(100).optional(),
 });
 
 export const competencySkillUpdateSchema = createUpdateSchema(competencySkills);

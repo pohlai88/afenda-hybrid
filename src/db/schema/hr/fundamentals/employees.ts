@@ -1,11 +1,12 @@
 import { integer, text, date, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { hrSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
 import { tenants } from "../../core/tenants";
 import { locations } from "../../core/locations";
+import { legalEntities } from "../../core/legalEntities";
 
 /**
  * Employees - Work relationship entity linking a person to an organization.
@@ -34,6 +35,8 @@ export const employees = hrSchema.table(
     positionId: integer(),
     managerId: integer(),
     locationId: integer(),
+    /** Legal entity that processes payroll / statutory filings for this employment (optional). */
+    payrollLegalEntityId: integer(),
     status: employeeStatusEnum().notNull().default("PENDING"),
     notes: text(),
     ...timestampColumns,
@@ -48,6 +51,7 @@ export const employees = hrSchema.table(
     index("idx_employees_position").on(t.tenantId, t.positionId),
     index("idx_employees_manager").on(t.tenantId, t.managerId),
     index("idx_employees_location").on(t.tenantId, t.locationId),
+    index("idx_employees_payroll_legal_entity").on(t.tenantId, t.payrollLegalEntityId),
     index("idx_employees_hire_date").on(t.tenantId, t.hireDate),
     uniqueIndex("uq_employees_code")
       .on(t.tenantId, sql`lower(${t.employeeCode})`)
@@ -70,6 +74,13 @@ export const employees = hrSchema.table(
       columns: [t.locationId],
       foreignColumns: [locations.locationId],
       name: "fk_employees_location",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.payrollLegalEntityId],
+      foreignColumns: [legalEntities.legalEntityId],
+      name: "fk_employees_payroll_legal_entity",
     })
       .onDelete("restrict")
       .onUpdate("cascade"),

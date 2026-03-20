@@ -257,7 +257,6 @@ pnpm check:all
 ### Documentation
 - [DB-First Guideline](../architecture/01-db-first-guideline.md)
 - [CI gates (maintained)](../CI_GATES.md)
-- [Archived: CI gate analysis](../archive/ci-gates/ci-gate-analysis.md)
 - [Architecture overview](../architecture/00-overview.md)
 
 ### Tools

@@ -9,7 +9,7 @@
  * - Partial indexes for soft-delete tables
  * - Index coverage for common filter patterns
  * 
- * @see docs/archive/ci-gates/ci-gate-analysis.md Gap 4
+ * @see docs/CI_GATES.md
  */
 
 import * as path from "path";

@@ -49,6 +49,7 @@ src/db/
 │   │   ├── fundamentals/ # Master data
 │   │   ├── operations/   # Transactional data
 │   │   └── _relations.ts
+│   ├── talent/           # Skills, PM, succession, ER — see schema/talent/README.md; employee↔talent edges live in talentRelations
 │   └── index.ts          # Barrel export
 ├── migrations/           # Generated SQL migrations
 ├── __tests__/            # Database tests
@@ -129,6 +130,8 @@ All core schema tables follow these standards:
 - ✅ TypeScript type exports
 - ✅ Consistent import organization
 
+**Zod import with `drizzle-orm/zod`:** use `import { z } from "zod/v4"` in schema modules (not `"zod"`). Drizzle’s Zod helpers are typed against the `zod/v4` entry point; mixing `"zod"` refinements with `createInsertSchema` / `createSelectSchema` / `createUpdateSchema` triggers TS2322 in the IDE.
+
 See `.cursor/CORE_SCHEMA_SYNC_REPORT.md` for detailed quality report.
 
 ### Adding a New Table
@@ -185,7 +188,6 @@ See [docs/testing/DOCKER_TEST_SETUP.md](../../docs/testing/DOCKER_TEST_SETUP.md)
 ## Documentation index
 
 - **[docs/README.md](../../docs/README.md)** — map of maintained docs (schema lockdown, CI gates, quick start)
-- **[docs/DOCUMENTATION_CLEANUP_PLAN.md](../../docs/DOCUMENTATION_CLEANUP_PLAN.md)** — plan to archive or merge legacy reports
 
 ## Guidelines
 
@@ -196,4 +198,4 @@ Key rules:
 - Tenant-scoped tables must include `tenantId` via mixin
 - Use `foreignKey()` for cross-schema references
 - Index `tenantId` as leading column
-- Export Zod schemas alongside table definitions
+- Export Zod schemas alongside table definitions (`z` from `zod/v4` when using `drizzle-orm/zod`; see note under Core Schema Quality Standards)

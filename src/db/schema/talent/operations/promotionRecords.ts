@@ -1,6 +1,6 @@
-import { integer, text, date, numeric, index, foreignKey, check } from "drizzle-orm/pg-core";
+import { integer, text, date, numeric, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
@@ -10,6 +10,10 @@ import { currencies } from "../../core/currencies";
 /**
  * Promotion Records - Grade/role advancement tracking.
  * Circular FK note: employeeId, fromPosition, toPosition, fromGrade, toGrade, approvedBy FKs added via custom SQL.
+ *
+ * Lifecycle: `approvedBy` / `approvedAt` are both NULL or both set, and only non-NULL when `status` is
+ * `APPROVED` or `COMPLETED` (enforced with CHECK — no trigger). `effectiveDate` may be in the past
+ * (retroactive promotions). Preflight: `docs/preflight-promotion-records-approval.sql`.
  */
 export const promotionStatuses = ["PENDING", "APPROVED", "REJECTED", "COMPLETED", "CANCELLED"] as const;
 
@@ -44,6 +48,20 @@ export const promotionRecords = talentSchema.table(
     index("idx_promotion_records_employee").on(t.tenantId, t.employeeId),
     index("idx_promotion_records_status").on(t.tenantId, t.status),
     index("idx_promotion_records_date").on(t.tenantId, t.effectiveDate),
+    index("idx_promotion_records_approved_at").on(t.tenantId, t.approvedAt),
+    index("idx_promotion_records_approved_reporting")
+      .on(t.tenantId, t.employeeId)
+      .where(
+        sql`${t.deletedAt} IS NULL AND ${t.status} = ${sql.raw(`'APPROVED'::"talent"."promotion_status"`)}`,
+      ),
+    index("idx_promotion_records_completed_reporting")
+      .on(t.tenantId, t.employeeId, t.effectiveDate)
+      .where(
+        sql`${t.deletedAt} IS NULL AND ${t.status} = ${sql.raw(`'COMPLETED'::"talent"."promotion_status"`)}`,
+      ),
+    uniqueIndex("uq_promotion_records_employee_effective")
+      .on(t.tenantId, t.employeeId, t.effectiveDate)
+      .where(sql`${t.deletedAt} IS NULL`),
     foreignKey({
       columns: [t.tenantId],
       foreignColumns: [tenants.tenantId],
@@ -66,6 +84,11 @@ export const promotionRecords = talentSchema.table(
       "chk_promotion_records_salary_percent",
       sql`${t.salaryIncreasePercent} IS NULL OR ${t.salaryIncreasePercent} >= 0`
     ),
+    check(
+      "chk_promotion_records_approval_consistency",
+      sql`((${t.approvedBy} IS NULL) = (${t.approvedAt} IS NULL)) AND
+          (${t.status}::text NOT IN ('APPROVED', 'COMPLETED') OR (${t.approvedBy} IS NOT NULL AND ${t.approvedAt} IS NOT NULL))`
+    ),
   ]
 );
 
@@ -75,12 +98,18 @@ export type PromotionRecordId = z.infer<typeof PromotionRecordIdSchema>;
 export const promotionRecordSelectSchema = createSelectSchema(promotionRecords);
 
 export const promotionRecordInsertSchema = createInsertSchema(promotionRecords, {
-  salaryIncrease: z.string().optional(),
-  salaryIncreasePercent: z.string().optional(),
+  /** Matches `numeric(12,2)` */
+  salaryIncrease: z.coerce.number().nonnegative().optional(),
+  /** Matches `numeric(5,2)` (e.g. percent points) */
+  salaryIncreasePercent: z.coerce.number().nonnegative().max(999.99).optional(),
   reason: z.string().max(2000).optional(),
 });
 
-export const promotionRecordUpdateSchema = createUpdateSchema(promotionRecords);
+export const promotionRecordUpdateSchema = createUpdateSchema(promotionRecords, {
+  salaryIncrease: z.coerce.number().nonnegative().optional(),
+  salaryIncreasePercent: z.coerce.number().nonnegative().max(999.99).optional(),
+  reason: z.string().max(2000).optional(),
+});
 
 export type PromotionRecord = typeof promotionRecords.$inferSelect;
 export type NewPromotionRecord = typeof promotionRecords.$inferInsert;

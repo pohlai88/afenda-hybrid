@@ -1,10 +1,11 @@
 import { integer, text, date, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { payrollSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../../_shared";
 import { tenants } from "../../core/tenants";
+import { legalEntities } from "../../core/legalEntities";
 
 /**
  * Payroll Periods - Monthly/biweekly payroll cycles.
@@ -20,6 +21,7 @@ export const payrollPeriods = payrollSchema.table(
   {
     payrollPeriodId: integer().primaryKey().generatedAlwaysAsIdentity(),
     tenantId: integer().notNull(),
+    legalEntityId: integer(),
     periodCode: text().notNull(),
     ...nameColumn,
     periodStart: date().notNull(),
@@ -34,6 +36,7 @@ export const payrollPeriods = payrollSchema.table(
     index("idx_payroll_periods_tenant").on(t.tenantId),
     index("idx_payroll_periods_dates").on(t.tenantId, t.periodStart, t.periodEnd),
     index("idx_payroll_periods_status").on(t.tenantId, t.status),
+    index("idx_payroll_periods_legal_entity").on(t.tenantId, t.legalEntityId),
     uniqueIndex("uq_payroll_periods_code")
       .on(t.tenantId, sql`lower(${t.periodCode})`)
       .where(sql`${t.deletedAt} IS NULL`),
@@ -44,6 +47,13 @@ export const payrollPeriods = payrollSchema.table(
       columns: [t.tenantId],
       foreignColumns: [tenants.tenantId],
       name: "fk_payroll_periods_tenant",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.legalEntityId],
+      foreignColumns: [legalEntities.legalEntityId],
+      name: "fk_payroll_periods_legal_entity",
     })
       .onDelete("restrict")
       .onUpdate("cascade"),

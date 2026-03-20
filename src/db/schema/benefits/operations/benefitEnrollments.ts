@@ -1,6 +1,6 @@
 import { integer, text, date, numeric, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { benefitsSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns } from "../../_shared";
@@ -17,6 +17,18 @@ export const enrollmentStatusEnum = benefitsSchema.enum("enrollment_status", [..
 
 export const enrollmentStatusZodEnum = createSelectSchema(enrollmentStatusEnum);
 
+export const benefitCoverageLevels = [
+  "EMPLOYEE_ONLY",
+  "EMPLOYEE_PLUS_PARTNER",
+  "EMPLOYEE_PLUS_CHILDREN",
+  "FAMILY",
+  "CUSTOM",
+] as const;
+
+export const benefitCoverageLevelEnum = benefitsSchema.enum("benefit_coverage_level", [...benefitCoverageLevels]);
+
+export const benefitCoverageLevelZodEnum = createSelectSchema(benefitCoverageLevelEnum);
+
 export const benefitEnrollments = benefitsSchema.table(
   "benefit_enrollments",
   {
@@ -28,7 +40,7 @@ export const benefitEnrollments = benefitsSchema.table(
     effectiveFrom: date().notNull(),
     effectiveTo: date(),
     employeeContribution: numeric({ precision: 10, scale: 2 }),
-    coverageLevel: text(),
+    coverageLevel: benefitCoverageLevelEnum(),
     status: enrollmentStatusEnum().notNull().default("PENDING"),
     terminationReason: text(),
     ...timestampColumns,
@@ -76,7 +88,7 @@ export const benefitEnrollmentSelectSchema = createSelectSchema(benefitEnrollmen
 
 export const benefitEnrollmentInsertSchema = createInsertSchema(benefitEnrollments, {
   employeeContribution: z.string().optional(),
-  coverageLevel: z.string().max(100).optional(),
+  coverageLevel: benefitCoverageLevelZodEnum.optional(),
   terminationReason: z.string().max(500).optional(),
 });
 

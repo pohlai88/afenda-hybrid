@@ -624,6 +624,7 @@ export const employees = hrSchema.table("employees", {
 
 Use the **built-in** integration from `drizzle-orm/zod` (not the deprecated `drizzle-zod` package). Prescribe **Zod 4** (`zod@^4.0.0`).
 
+- **Imports:** in the same module as `createSelectSchema` / `createInsertSchema` / `createUpdateSchema`, use `import { z } from "zod/v4"`. Drizzle’s typings reference `zod/v4`; `import { z } from "zod"` is a separate declaration path in Zod 4 and breaks assignability on refinements (TS2322 / “two different types with this name exist”).
 - `createSelectSchema(table)` — validates data from the DB; works on tables, views, enums.
 - `createInsertSchema(table)` — validates insert payloads; respects defaults/generated columns.
 - `createUpdateSchema(table)` — validates partial updates (all fields optional).
@@ -635,6 +636,7 @@ Use the **built-in** integration from `drizzle-orm/zod` (not the deprecated `dri
 
 ```typescript
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { z } from "zod/v4";
 import { tenants } from "./tenants";
 
 export const tenantSelectSchema = createSelectSchema(tenants);
@@ -649,6 +651,8 @@ export const tenantUpdateSchema = createUpdateSchema(tenants);
 **Branded types for entity IDs**
 
 ```typescript
+import { z } from "zod/v4";
+
 const TenantId = z.number().int().brand<"TenantId">();
 const UserId = z.number().int().brand<"UserId">();
 type TenantId = z.infer<typeof TenantId>;
@@ -662,6 +666,9 @@ Export branded ID types from each schema module for service-layer type safety.
 Zod 4 promotes string validations to top-level (`z.email()`, `z.uuid()`, `z.url()`, `z.ipv4()`, `z.ipv6()`, `z.mac()`, `z.cidrv4()`, `z.cidrv6()`). Use in refinement overrides:
 
 ```typescript
+import { z } from "zod/v4";
+// alongside createInsertSchema from "drizzle-orm/zod"
+
 const insertUserSchema = createInsertSchema(users, {
   email: z.email(),
   name: (schema) => schema.max(100),
@@ -1474,7 +1481,7 @@ Track all deviations from this guideline here. Each entry must reference an appr
 
 ### Zod 4 import
 
-`import { z } from "zod"` (Zod 4 stable). Use `createSelectSchema`, `createInsertSchema`, `createUpdateSchema` from `drizzle-orm/zod`.
+For schema modules that use **`drizzle-orm/zod`**, import `z` from **`"zod/v4"`** so refinements match Drizzle’s types. (The package root `"zod"` is fine for app-only code that does not mix with `createInsertSchema` / similar.) Use `createSelectSchema`, `createInsertSchema`, `createUpdateSchema` from `drizzle-orm/zod`.
 
 ---
 

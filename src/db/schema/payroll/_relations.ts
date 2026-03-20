@@ -1,6 +1,7 @@
 import { defineRelations } from "drizzle-orm";
 import { tenants } from "../core/tenants";
 import { currencies } from "../core/currencies";
+import { legalEntities } from "../core/legalEntities";
 import { employees } from "../hr/fundamentals/employees";
 import { compensationPackages } from "./fundamentals/compensationPackages";
 import { payComponents } from "./fundamentals/payComponents";
@@ -11,6 +12,8 @@ import { expenseTypes } from "./fundamentals/expenseTypes";
 import { bankAccounts } from "./fundamentals/bankAccounts";
 import { taxProfiles } from "./fundamentals/taxProfiles";
 import { socialInsuranceProfiles } from "./fundamentals/socialInsuranceProfiles";
+import { statutorySchemes } from "./fundamentals/statutorySchemes";
+import { statutorySchemeRates } from "./fundamentals/statutorySchemeRates";
 import { jobGrades } from "../hr/employment/jobGrades";
 import { payrollPeriods } from "./operations/payrollPeriods";
 import { payrollRuns } from "./operations/payrollRuns";
@@ -25,6 +28,7 @@ export const payrollRelations = defineRelations(
   {
     tenants,
     currencies,
+    legalEntities,
     employees,
     jobGrades,
     compensationPackages,
@@ -36,6 +40,8 @@ export const payrollRelations = defineRelations(
     bankAccounts,
     taxProfiles,
     socialInsuranceProfiles,
+    statutorySchemes,
+    statutorySchemeRates,
     payrollPeriods,
     payrollRuns,
     payrollEntries,
@@ -65,6 +71,16 @@ export const payrollRelations = defineRelations(
         from: r.payComponents.tenantId,
         to: r.tenants.tenantId,
       }),
+      earningsType: r.one.earningsTypes({
+        from: r.payComponents.earningsTypeId,
+        to: r.earningsTypes.earningsTypeId,
+        optional: true,
+      }),
+      deductionType: r.one.deductionTypes({
+        from: r.payComponents.deductionTypeId,
+        to: r.deductionTypes.deductionTypeId,
+        optional: true,
+      }),
       payrollEntries: r.many.payrollEntries({
         from: r.payComponents.payComponentId,
         to: r.payrollEntries.payComponentId,
@@ -89,11 +105,19 @@ export const payrollRelations = defineRelations(
         from: r.earningsTypes.tenantId,
         to: r.tenants.tenantId,
       }),
+      payComponents: r.many.payComponents({
+        from: r.earningsTypes.earningsTypeId,
+        to: r.payComponents.earningsTypeId,
+      }),
     },
     deductionTypes: {
       tenant: r.one.tenants({
         from: r.deductionTypes.tenantId,
         to: r.tenants.tenantId,
+      }),
+      payComponents: r.many.payComponents({
+        from: r.deductionTypes.deductionTypeId,
+        to: r.payComponents.deductionTypeId,
       }),
     },
     expenseTypes: {
@@ -144,11 +168,46 @@ export const payrollRelations = defineRelations(
         from: r.socialInsuranceProfiles.employeeId,
         to: r.employees.employeeId,
       }),
+      statutoryScheme: r.one.statutorySchemes({
+        from: r.socialInsuranceProfiles.statutorySchemeId,
+        to: r.statutorySchemes.statutorySchemeId,
+        optional: true,
+      }),
+      legalEntity: r.one.legalEntities({
+        from: r.socialInsuranceProfiles.legalEntityId,
+        to: r.legalEntities.legalEntityId,
+        optional: true,
+      }),
+    },
+    statutorySchemes: {
+      rates: r.many.statutorySchemeRates({
+        from: r.statutorySchemes.statutorySchemeId,
+        to: r.statutorySchemeRates.statutorySchemeId,
+      }),
+      socialInsuranceProfiles: r.many.socialInsuranceProfiles({
+        from: r.statutorySchemes.statutorySchemeId,
+        to: r.socialInsuranceProfiles.statutorySchemeId,
+      }),
+      payrollEntries: r.many.payrollEntries({
+        from: r.statutorySchemes.statutorySchemeId,
+        to: r.payrollEntries.statutorySchemeId,
+      }),
+    },
+    statutorySchemeRates: {
+      statutoryScheme: r.one.statutorySchemes({
+        from: r.statutorySchemeRates.statutorySchemeId,
+        to: r.statutorySchemes.statutorySchemeId,
+      }),
     },
     payrollPeriods: {
       tenant: r.one.tenants({
         from: r.payrollPeriods.tenantId,
         to: r.tenants.tenantId,
+      }),
+      legalEntity: r.one.legalEntities({
+        from: r.payrollPeriods.legalEntityId,
+        to: r.legalEntities.legalEntityId,
+        optional: true,
       }),
       payrollRuns: r.many.payrollRuns({
         from: r.payrollPeriods.payrollPeriodId,
@@ -163,6 +222,11 @@ export const payrollRelations = defineRelations(
       period: r.one.payrollPeriods({
         from: r.payrollRuns.payrollPeriodId,
         to: r.payrollPeriods.payrollPeriodId,
+      }),
+      legalEntity: r.one.legalEntities({
+        from: r.payrollRuns.legalEntityId,
+        to: r.legalEntities.legalEntityId,
+        optional: true,
       }),
       currency: r.one.currencies({
         from: r.payrollRuns.currencyId,
@@ -205,6 +269,11 @@ export const payrollRelations = defineRelations(
       payComponent: r.one.payComponents({
         from: r.payrollEntries.payComponentId,
         to: r.payComponents.payComponentId,
+        optional: true,
+      }),
+      statutoryScheme: r.one.statutorySchemes({
+        from: r.payrollEntries.statutorySchemeId,
+        to: r.statutorySchemes.statutorySchemeId,
         optional: true,
       }),
     },

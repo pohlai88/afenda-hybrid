@@ -1,10 +1,12 @@
-import { integer, text, boolean, index, uniqueIndex, foreignKey } from "drizzle-orm/pg-core";
+import { integer, text, boolean, index, uniqueIndex, foreignKey, check } from "drizzle-orm/pg-core";
 import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
-import { z } from "zod";
+import { z } from "zod/v4";
 import { sql } from "drizzle-orm";
 import { payrollSchema } from "../_schema";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../../_shared";
 import { tenants } from "../../core/tenants";
+import { earningsTypes } from "./earningsTypes";
+import { deductionTypes } from "./deductionTypes";
 
 /**
  * Pay Components - Salary elements (base, allowance, bonus, etc.).
@@ -34,6 +36,8 @@ export const payComponents = payrollSchema.table(
     isTaxable: boolean().notNull().default(true),
     isRecurring: boolean().notNull().default(true),
     affectsGrossPay: boolean().notNull().default(true),
+    earningsTypeId: integer(),
+    deductionTypeId: integer(),
     status: payComponentStatusEnum().notNull().default("ACTIVE"),
     ...timestampColumns,
     ...softDeleteColumns,
@@ -43,6 +47,8 @@ export const payComponents = payrollSchema.table(
     index("idx_pay_components_tenant").on(t.tenantId),
     index("idx_pay_components_type").on(t.tenantId, t.componentType),
     index("idx_pay_components_status").on(t.tenantId, t.status),
+    index("idx_pay_components_earnings_type").on(t.tenantId, t.earningsTypeId),
+    index("idx_pay_components_deduction_type").on(t.tenantId, t.deductionTypeId),
     uniqueIndex("uq_pay_components_code")
       .on(t.tenantId, sql`lower(${t.componentCode})`)
       .where(sql`${t.deletedAt} IS NULL`),
@@ -53,6 +59,24 @@ export const payComponents = payrollSchema.table(
     })
       .onDelete("restrict")
       .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.earningsTypeId],
+      foreignColumns: [earningsTypes.earningsTypeId],
+      name: "fk_pay_components_earnings_type",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.deductionTypeId],
+      foreignColumns: [deductionTypes.deductionTypeId],
+      name: "fk_pay_components_deduction_type",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
+    check(
+      "chk_pay_components_single_master",
+      sql`NOT (${t.earningsTypeId} IS NOT NULL AND ${t.deductionTypeId} IS NOT NULL)`
+    ),
   ]
 );
 
