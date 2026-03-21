@@ -12,7 +12,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 
 interface ComplianceIssue {
   file: string;

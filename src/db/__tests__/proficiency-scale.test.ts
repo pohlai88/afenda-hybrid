@@ -4,8 +4,8 @@ import {
   isProficiencyCode,
   meetsRequiredLevel,
   proficiencyScale,
-} from "../utils/proficiencyScale";
-import { proficiencyCodes } from "../schema/talent/_shared/proficiency";
+} from "@db/_queries/talent";
+import { proficiencyCodes } from "@db/schema-hrm/talent/_shared/proficiency";
 
 describe("proficiency scale", () => {
   it("keeps expected ordinal mapping", () => {

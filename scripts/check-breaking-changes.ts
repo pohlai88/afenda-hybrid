@@ -20,7 +20,7 @@ import * as path from "path";
 import { execSync } from "child_process";
 import { analyzeSchema, TableInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
 
 interface BreakingChange {
@@ -78,7 +78,7 @@ function getGitDiff(): string[] {
     // Get changed files in schema directory
     const baseBranch = process.env.GITHUB_BASE_REF || "main";
     const diff = execSync(
-      `git diff --name-only origin/${baseBranch}...HEAD -- src/db/schema/`,
+      `git diff --name-only origin/${baseBranch}...HEAD -- src/db/schema-platform/`,
       { encoding: "utf-8" }
     ).trim();
     

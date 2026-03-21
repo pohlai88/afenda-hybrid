@@ -16,7 +16,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
 interface IsolationIssue {

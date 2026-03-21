@@ -230,7 +230,7 @@ function main(): void {
   checkFile("drizzle.config.ts", "Drizzle Config");
   
   // 2. Check schema files
-  checkFile("src/db/schema/index.ts", "Schema Entry Point");
+  checkFile("src/db/schema-platform/index.ts", "Schema Entry Point");
   
   // 3. Check migration files
   checkMigrationFiles();
@@ -274,7 +274,7 @@ function main(): void {
   
   // 10. Check documentation
   checkFile("docs/SCHEMA_LOCKDOWN.md", "Schema Lockdown Guide");
-  checkFile("src/db/schema/audit/CUSTOM_SQL_REGISTRY.json", "Custom SQL Registry");
+  checkFile("src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json", "Custom SQL Registry");
   
   // Print results
   printResults();

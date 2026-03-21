@@ -3,7 +3,7 @@
   "description": "Exceptions for shared column mixin enforcement. Add entries here when bypassing _shared mixins with valid justification.",
   "exceptions": [
     {
-      "file": "src/db/schema/core/tenants.ts",
+      "file": "src/db/schema-platform/core/tenants.ts",
       "table": "tenants",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -12,7 +12,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/core/organizations.ts",
+      "file": "src/db/schema-platform/core/organizations.ts",
       "table": "organizations",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -21,7 +21,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/core/locations.ts",
+      "file": "src/db/schema-platform/core/locations.ts",
       "table": "locations",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -30,7 +30,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/core/regions.ts",
+      "file": "src/db/schema-platform/core/regions.ts",
       "table": "regions",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -39,7 +39,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/audit/auditTrail.ts",
+      "file": "src/db/schema-platform/audit/auditTrail.ts",
       "table": "audit_trail",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -48,7 +48,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/security/users.ts",
+      "file": "src/db/schema-platform/security/users.ts",
       "table": "users",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -57,7 +57,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/security/roles.ts",
+      "file": "src/db/schema-platform/security/roles.ts",
       "table": "roles",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -66,7 +66,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/security/userRoles.ts",
+      "file": "src/db/schema-platform/security/userRoles.ts",
       "table": "user_roles",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -75,7 +75,7 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/security/servicePrincipals.ts",
+      "file": "src/db/schema-platform/security/servicePrincipals.ts",
       "table": "service_principals",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
@@ -84,13 +84,22 @@
       "date": "2026-03-19"
     },
     {
-      "file": "src/db/schema/audit/retentionPolicy.ts",
+      "file": "src/db/schema-platform/audit/retentionPolicy.ts",
       "table": "retention_policies",
       "column": "tenantId",
       "rule": "use-tenant-mixin",
       "reason": "Nullable tenantId for global default policies (NULL = applies to all tenants)",
       "owner": "audit-team",
       "date": "2026-03-19"
+    },
+    {
+      "file": "src/db/schema-hrm/talent/operations/goalTracking.ts",
+      "table": "goal_tracking",
+      "column": "updatedBy",
+      "rule": "use-audit-mixin",
+      "reason": "Append-only tracking row: single optional actor column (see appendOnlyTimestampColumns + Circular FK note for FK enforcement)",
+      "owner": "talent-team",
+      "date": "2026-03-21"
     }
   ]
 }

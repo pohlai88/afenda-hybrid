@@ -1,4 +1,8 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Vitest configuration for database integration tests
@@ -19,6 +23,11 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@db": path.resolve(__dirname, "src/db"),
+    },
+  },
   test: {
     include: ["src/db/__tests__/**/*.test.ts"],
     setupFiles: ["./src/db/__tests__/setup.ts"],

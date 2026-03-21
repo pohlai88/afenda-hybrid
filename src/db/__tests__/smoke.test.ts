@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
-import { tenants } from "../schema/core/tenants";
+import { tenants } from "../schema-platform/core/tenants";
 import { sql } from "drizzle-orm";
-import { setSessionContext } from "../utils";
+import { setSessionContext } from "../_session";
 
 describe("Database Smoke Tests", () => {
   beforeAll(async () => {

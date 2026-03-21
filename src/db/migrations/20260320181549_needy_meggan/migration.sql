@@ -1,0 +1,1 @@
+CREATE INDEX "idx_interviews_application_date" ON "recruitment"."interviews" ("tenantId","applicationId","scheduledDate");--> statement-breakpoint

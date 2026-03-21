@@ -1,5 +1,5 @@
 # Database schema requires DBA approval
-/src/db/schema/** @dba-team @schema-owners
+/src/db/schema-platform/** @dba-team @schema-owners
 /src/db/migrations/** @dba-team @schema-owners
 /drizzle.config.ts @dba-team
-/src/db/schema/audit/CUSTOM_SQL_REGISTRY.json @dba-team @schema-owners
+/src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json @dba-team @schema-owners

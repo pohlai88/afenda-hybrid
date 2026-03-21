@@ -1,0 +1,1 @@
+DROP INDEX "recruitment"."idx_candidates_status";

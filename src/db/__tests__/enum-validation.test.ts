@@ -2,16 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   tenantStatusZodEnum,
   tenantSettingsSchema,
-} from "../schema/core/tenants";
+} from "../schema-platform/core/tenants";
 import {
   regionTypeZodEnum,
   regionStatusZodEnum,
-} from "../schema/core/regions";
+} from "../schema-platform/core/regions";
 import {
   organizationTypeZodEnum,
   organizationStatusZodEnum,
-} from "../schema/core/organizations";
-import { locationStatusZodEnum } from "../schema/core/locations";
+} from "../schema-platform/core/organizations";
+import { locationStatusZodEnum } from "../schema-platform/core/locations";
 
 describe("Enum Validation Tests", () => {
   describe("tenant status enum", () => {

@@ -1,0 +1,1 @@
+ALTER TABLE "learning"."training_enrollments" ADD CONSTRAINT "chk_training_enrollments_completed_min_attendance" CHECK ("status"::text <> 'COMPLETED' OR "attendancePercent" IS NULL OR "attendancePercent" >= 80);--> statement-breakpoint

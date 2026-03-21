@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   disciplinaryActionInsertSchema,
   disciplinaryActionUpdateSchema,
-} from "../schema/talent/operations/disciplinaryActions";
+} from "../schema-hrm/talent/operations/disciplinaryActions";
 
 /** Minimal insert shape that satisfies generated insert schema (enums + required fields). */
 const validInsertBase = {

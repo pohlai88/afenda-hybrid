@@ -18,7 +18,7 @@ interface ValidationIssue {
 }
 
 const issues: ValidationIssue[] = [];
-const hrSchemaDir = path.join(process.cwd(), "src/db/schema/hr");
+const hrSchemaDir = path.join(process.cwd(), "src/db/schema-hrm/hr");
 
 function addIssue(severity: ValidationIssue["severity"], category: string, message: string, file?: string, suggestion?: string): void {
   issues.push({ severity, category, message, file, suggestion });
@@ -76,7 +76,7 @@ try {
 // 5. Check schema imports
 try {
   execSync(
-    `pnpm tsx -e "import('./src/db/schema/hr/index.ts').then(() => console.log('OK')).catch(e => { console.error('ERROR:', e.message); process.exit(1); })"`,
+    `pnpm tsx -e "import('./src/db/schema-hrm/hr/index.ts').then(() => console.log('OK')).catch(e => { console.error('ERROR:', e.message); process.exit(1); })"`,
     { 
       stdio: "pipe",
       cwd: process.cwd(),

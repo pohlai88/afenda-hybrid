@@ -265,7 +265,7 @@ export function generateReport(schemas: SchemaInfo[]): string {
 
 // CLI entry point (ESM compatible)
 async function main() {
-  const schemaDir = path.join(process.cwd(), "src/db/schema");
+  const schemaDir = path.join(process.cwd(), "src/db/schema-platform");
   
   console.log("🔍 Analyzing schema...\n");
   

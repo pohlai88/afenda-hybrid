@@ -10,7 +10,7 @@
 ✅ Docker test database is running  
 ✅ Environment variables configured  
 ✅ Migrations applied  
-✅ Git repository initialized  
+✅ Git repository initialized
 
 ---
 
@@ -35,7 +35,7 @@ pnpm docker:test:shell
 ### Schema Changes Workflow
 
 ```bash
-# 1. Edit schema files in src/db/schema/
+# 1. Edit schema files in src/db/schema-platform/
 
 # 2. Generate migration
 pnpm db:generate
@@ -141,6 +141,7 @@ pnpm docker:test:shell
 ```
 
 **Connection String**:
+
 ```
 postgresql://postgres:postgres@localhost:5433/afenda_test
 ```
@@ -179,17 +180,20 @@ d:\AFENDA-HYBRID\
 ## 🛡️ Schema Lockdown Rules
 
 ### ❌ NEVER Use
+
 ```bash
 pnpm db:push  # DISABLED - bypasses migration tracking
 ```
 
 ### ✅ ALWAYS Use
+
 ```bash
 pnpm db:generate  # Generate migration
 pnpm db:migrate   # Apply migration
 ```
 
 ### Emergency Bypass (Local Dev Only)
+
 ```bash
 pnpm db:push:unsafe  # Use with extreme caution!
 ```
@@ -199,6 +203,7 @@ pnpm db:push:unsafe  # Use with extreme caution!
 ## 📝 Custom SQL Guidelines
 
 ### When to Use Custom SQL
+
 - Table partitioning
 - Triggers and trigger functions
 - PostgreSQL-specific indexes (GIN, GIST)
@@ -206,9 +211,10 @@ pnpm db:push:unsafe  # Use with extreme caution!
 - Database functions/procedures
 
 ### Required Steps
+
 1. Add `-- CUSTOM: CSQL-XXX` marker in migration file
-2. Register in `src/db/schema/audit/CUSTOM_SQL_REGISTRY.json`
-3. Document in `src/db/schema/audit/CUSTOM_SQL.md`
+2. Register in `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`
+3. Document in `src/db/schema-platform/audit/CUSTOM_SQL.md`
 4. Get DBA approval (use GitHub issue template)
 
 **See**: `docs/SCHEMA_LOCKDOWN.md` for full process
@@ -217,23 +223,24 @@ pnpm db:push:unsafe  # Use with extreme caution!
 
 ## 🔍 Validation Checks
 
-| Command | Purpose | When to Run |
-|---------|---------|-------------|
-| `check:naming` | Naming conventions | Before commit |
-| `check:structure` | Schema structure | Before commit |
-| `check:compliance` | Guideline compliance | Before commit |
-| `check:tenant` | Tenant isolation | Before commit |
-| `check:migrations` | Migration format | After `db:generate` |
-| `check:drift` | Schema drift | Before commit |
-| `check:all` | All checks | Before PR |
-| `gate:early` | Fast gate checks | Pre-commit hook |
-| `gate:strict` | Strict gate checks | CI/CD |
+| Command            | Purpose              | When to Run         |
+| ------------------ | -------------------- | ------------------- |
+| `check:naming`     | Naming conventions   | Before commit       |
+| `check:structure`  | Schema structure     | Before commit       |
+| `check:compliance` | Guideline compliance | Before commit       |
+| `check:tenant`     | Tenant isolation     | Before commit       |
+| `check:migrations` | Migration format     | After `db:generate` |
+| `check:drift`      | Schema drift         | Before commit       |
+| `check:all`        | All checks           | Before PR           |
+| `gate:early`       | Fast gate checks     | Pre-commit hook     |
+| `gate:strict`      | Strict gate checks   | CI/CD               |
 
 ---
 
 ## 🐛 Troubleshooting
 
 ### Database won't start
+
 ```bash
 # Check Docker is running
 docker ps
@@ -246,6 +253,7 @@ pnpm docker:test:reset
 ```
 
 ### Migration fails
+
 ```bash
 # Check environment
 pnpm db:prepare
@@ -261,6 +269,7 @@ pnpm docker:test:logs
 ```
 
 ### Schema drift detected
+
 ```bash
 # Check what changed
 pnpm check:drift
@@ -273,6 +282,7 @@ pnpm db:migrate
 ```
 
 ### Environment variables not loading
+
 ```bash
 # Check .env file exists
 cat .env
@@ -289,20 +299,23 @@ pnpm db:prepare
 ## 🎯 Common Tasks
 
 ### Add a New Table
-1. Create schema file in `src/db/schema/<domain>/`
-2. Export from domain `index.ts`
+
+1. Create the table module under `src/db/schema-platform/<area>/` (platform) or `src/db/schema-hrm/<domain>/` (HCM).
+2. Export from the domain `index.ts` (and from `schema-platform/index.ts` if adding a new barrel surface).
 3. Generate migration: `pnpm db:generate`
 4. Validate: `pnpm check:migrations`
 5. Apply: `pnpm db:migrate`
 6. Verify: `pnpm db:studio`
 
 ### Add a New Column
+
 1. Edit schema file
 2. Generate migration: `pnpm db:generate`
 3. Validate: `pnpm check:migrations`
 4. Apply: `pnpm db:migrate`
 
 ### Add Custom SQL (Trigger, Partition, etc.)
+
 1. Generate migration: `pnpm db:generate`
 2. Edit migration file, add custom SQL with `-- CUSTOM: CSQL-XXX` marker
 3. Register in `CUSTOM_SQL_REGISTRY.json`
@@ -312,6 +325,7 @@ pnpm db:prepare
 7. Apply: `pnpm db:migrate`
 
 ### Reset Database to Clean State
+
 ```bash
 pnpm docker:test:reset
 pnpm db:migrate
@@ -324,7 +338,7 @@ pnpm db:migrate
 - **Doc index**: [docs/README.md](./README.md)
 - **Schema Lockdown**: [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)
 - **Database Guidelines**: [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)
-- **Custom SQL**: `src/db/schema/audit/CUSTOM_SQL.md`
+- **Custom SQL**: `src/db/schema-platform/audit/CUSTOM_SQL.md`
 
 ---
 

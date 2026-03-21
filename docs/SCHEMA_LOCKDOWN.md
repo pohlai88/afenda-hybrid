@@ -13,18 +13,18 @@ flowchart TD
     B -->|No| D[Is it Essential?]
     D -->|No| E[Find Alternative Approach]
     D -->|Yes| F[Custom SQL Required]
-    
+
     C --> G[Run pnpm db:generate]
     F --> H[Get DBA Approval]
     H --> I[Add CSQL-XXX to Registry]
     I --> G
-    
+
     G --> J[Review Generated Migration]
     J --> K{Custom SQL Needed?}
     K -->|Yes| L[Append with -- CUSTOM: marker]
     K -->|No| M[Commit Migration]
     L --> M
-    
+
     M --> N[CI Validates]
     N --> O{Validation Pass?}
     O -->|No| P[Fix Issues]
@@ -34,15 +34,15 @@ flowchart TD
 
 ## Validation Checks Reference
 
-| Check | Script | When | Blocks Merge | Can Bypass |
-|-------|--------|------|--------------|------------|
-| Migration Format | `validate-migrations.ts` | Pre-commit, CI | Yes | Emergency only |
-| Schema Drift | `detect-schema-drift.ts` | Pre-commit, CI, Daily | Yes | `--allow-drift` |
-| Custom SQL Markers | `validate-migrations.ts` | CI | Yes | No |
-| Custom SQL Registry | `validate-migrations.ts` | CI | Yes | No |
-| Checksum Validation | `validate-migrations.ts` | CI | Yes | No |
-| TypeScript Compilation | `tsc --noEmit` | Pre-commit, CI | Yes | No |
-| Drizzle Check | `drizzle-kit check` | Pre-commit, CI | Yes | No |
+| Check                  | Script                   | When                  | Blocks Merge | Can Bypass      |
+| ---------------------- | ------------------------ | --------------------- | ------------ | --------------- |
+| Migration Format       | `validate-migrations.ts` | Pre-commit, CI        | Yes          | Emergency only  |
+| Schema Drift           | `detect-schema-drift.ts` | Pre-commit, CI, Daily | Yes          | `--allow-drift` |
+| Custom SQL Markers     | `validate-migrations.ts` | CI                    | Yes          | No              |
+| Custom SQL Registry    | `validate-migrations.ts` | CI                    | Yes          | No              |
+| Checksum Validation    | `validate-migrations.ts` | CI                    | Yes          | No              |
+| TypeScript Compilation | `tsc --noEmit`           | Pre-commit, CI        | Yes          | No              |
+| Drizzle Check          | `drizzle-kit check`      | Pre-commit, CI        | Yes          | No              |
 
 ## Custom SQL Approval Process
 
@@ -53,6 +53,7 @@ flowchart TD
 - Document why custom SQL is required
 
 **Cannot be expressed in Drizzle (require custom SQL):**
+
 - Table partitioning (PARTITION BY RANGE/LIST/HASH)
 - Exclusion constraints (EXCLUDE USING)
 - Triggers and trigger functions
@@ -62,6 +63,7 @@ flowchart TD
 - Partition maintenance functions
 
 **Can be expressed in Drizzle (should NOT use custom SQL):**
+
 - Table definitions
 - Column types and constraints
 - Foreign keys
@@ -83,7 +85,7 @@ flowchart TD
 ### Step 3: Add to Registry
 
 - Assign next CSQL-XXX ID (check `CUSTOM_SQL_REGISTRY.json` for highest number)
-- Add entry to `src/db/schema/audit/CUSTOM_SQL_REGISTRY.json`:
+- Add entry to `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`:
   ```json
   "CSQL-010": {
     "purpose": "Description of what this custom SQL does",
@@ -96,7 +98,7 @@ flowchart TD
     "sqlLines": "45-67"
   }
   ```
-- Document in `src/db/schema/audit/CUSTOM_SQL.md` (optional, for detailed docs)
+- Document in `src/db/schema-platform/audit/CUSTOM_SQL.md` (optional, for detailed docs)
 
 ### Step 4: Implement
 
@@ -126,6 +128,7 @@ flowchart TD
 **Solution**: Always use `db:generate` + `db:migrate`
 
 **Example**:
+
 ```bash
 # ❌ Wrong
 pnpm db:push
@@ -144,6 +147,7 @@ pnpm db:migrate
 **Solution**: Let Drizzle generate migrations, only append custom SQL
 
 **Example**:
+
 ```sql
 -- ❌ Wrong: Hand-written migration
 CREATE TABLE core.new_table (
@@ -165,6 +169,7 @@ CREATE TRIGGER trg_new_table_audit ...
 **Solution**: Always use `-- CUSTOM: <purpose> (CSQL-XXX)` marker
 
 **Example**:
+
 ```sql
 -- ❌ Wrong
 CREATE FUNCTION audit.my_function() ...
@@ -181,6 +186,7 @@ CREATE FUNCTION audit.my_function() ...
 **Solution**: Always append custom SQL after all Drizzle-generated SQL
 
 **Example**:
+
 ```sql
 -- ✅ Correct order:
 -- 1. Drizzle-generated SQL (CREATE TABLE, ALTER TABLE, etc.)
@@ -212,10 +218,11 @@ CREATE TRIGGER ...
    - Document in incident log
 
 2. **Apply Hotfix**
+
    ```bash
    # Option A: Direct SQL (if db:push won't work)
    psql $DATABASE_URL < hotfix.sql
-   
+
    # Option B: Unsafe push (if schema change only)
    ALLOW_DB_PUSH=1 pnpm db:push:unsafe
    ```
@@ -234,6 +241,7 @@ CREATE TRIGGER ...
 ### Audit Trail
 
 All emergency bypasses are logged to:
+
 - `docs/incidents/YYYY-MM-DD-emergency-bypass.md` (create if needed)
 - GitHub issue with label `emergency-bypass`
 - Slack/Teams #db-changes channel (if configured)
@@ -278,13 +286,14 @@ A: No. Even quick fixes must go through the workflow. Use [Emergency Bypass](#em
 
 **Q: What if my migration validation fails?**
 A: Check the error message. Common issues:
+
 - Missing `-- CUSTOM:` marker for custom SQL
 - CSQL-XXX not in registry
 - Custom SQL not at end of file
 - Hand-written migration detected
 
 **Q: How do I get the next CSQL-XXX ID?**
-A: Check `src/db/schema/audit/CUSTOM_SQL_REGISTRY.json` and use the next sequential number.
+A: Check `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json` and use the next sequential number.
 
 ## GitHub Branch Protection Rules
 
@@ -292,7 +301,7 @@ The following branch protection rules should be configured in GitHub:
 
 - ✅ Require `db-ci` workflow to pass
 - ✅ Require `early-gate` workflow to pass
-- ✅ Require at least 1 approval for `src/db/schema/**` or `src/db/migrations/**`
+- ✅ Require at least 1 approval for `src/db/schema-platform/**` or `src/db/migrations/**`
 - ✅ Require linear history (no force pushes to main)
 - ✅ Require signed commits (optional, for audit trail)
 - ✅ Dismiss stale reviews when new commits pushed
@@ -302,5 +311,5 @@ These rules are enforced via `.github/CODEOWNERS` file.
 ## Related Documentation
 
 - [DB-First Guideline](architecture/01-db-first-guideline.md) - Complete schema design guidelines
-- [Custom SQL Documentation](../src/db/schema/audit/CUSTOM_SQL.md) - Detailed custom SQL examples
+- [Custom SQL Documentation](../src/db/schema-platform/audit/CUSTOM_SQL.md) - Detailed custom SQL examples
 - [CI gates (maintained)](CI_GATES.md) — day-to-day CI reference

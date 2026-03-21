@@ -1,0 +1,2 @@
+CREATE INDEX "idx_candidates_tenant_status_updated_at" ON "recruitment"."candidates" ("tenantId","status","updatedAt");--> statement-breakpoint
+ALTER TABLE "recruitment"."candidates" ADD CONSTRAINT "chk_candidates_hired_requires_hr_bridge" CHECK ("status"::text <> 'HIRED' OR ("personId" IS NOT NULL AND "convertedEmployeeId" IS NOT NULL));

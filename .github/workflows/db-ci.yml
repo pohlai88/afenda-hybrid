@@ -3,18 +3,18 @@ name: Database CI Gate
 on:
   pull_request:
     paths:
-      - 'src/db/schema/**'
-      - 'src/db/migrations/**'
-      - 'drizzle.config.ts'
-      - 'package.json'
+      - "src/db/schema-platform/**"
+      - "src/db/migrations/**"
+      - "drizzle.config.ts"
+      - "package.json"
   push:
     branches: [main]
     paths:
-      - 'src/db/schema/**'
-      - 'src/db/migrations/**'
+      - "src/db/schema-platform/**"
+      - "src/db/migrations/**"
 
 env:
-  POSTGRES_VERSION: '16'
+  POSTGRES_VERSION: "16"
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_test
 
 jobs:
@@ -36,8 +36,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -97,8 +97,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -159,8 +159,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -229,7 +229,7 @@ jobs:
             WHERE trigger_schema IN ('core', 'security', 'audit', 'hr', 'finance')
             ORDER BY trigger_schema, trigger_name;
           "
-          
+
           echo "Verifying functions..."
           PGPASSWORD=postgres psql -h localhost -U postgres -d afenda_test -c "
             SELECT routine_schema, routine_name, routine_type
@@ -286,8 +286,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -302,7 +302,7 @@ jobs:
       - name: Check for unsafe concurrent patterns
         run: |
           echo "Checking migrations for concurrent safety issues..."
-          
+
           # Check for CREATE INDEX without CONCURRENTLY on large tables
           if ls src/db/migrations/**/migration.sql 1> /dev/null 2>&1; then
             for file in src/db/migrations/**/migration.sql; do
@@ -322,7 +322,7 @@ jobs:
               fi
             done
           fi
-          
+
           echo "✅ Concurrent safety check completed"
 
       - name: Test migration with lock timeout
@@ -332,7 +332,7 @@ jobs:
             SET lock_timeout = '10s';
             SET statement_timeout = '30s';
           "
-          
+
           pnpm db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/afenda_concurrent
@@ -371,8 +371,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -434,8 +434,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -490,8 +490,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -531,8 +531,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -560,35 +560,35 @@ jobs:
             echo "::error::Migration validation failed. Ensure all custom SQL is marked with '-- CUSTOM: <purpose> (CSQL-XXX)' and documented in CUSTOM_SQL_REGISTRY.json"
             exit 1
           fi
-          
+
           # Additional check: verify registry exists and is valid JSON
-          if [ ! -f "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+          if [ ! -f "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
             exit 1
           fi
-          
+
           # Validate JSON syntax
-          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
             exit 1
           fi
-          
+
           echo "✅ Custom SQL verification passed"
 
       - name: Check for SQL injection vulnerabilities
         run: |
           echo "Checking for potential SQL injection patterns..."
-          
+
           # Check for string concatenation in SQL
           if grep -rE "\+\s*['\"].*SELECT|INSERT|UPDATE|DELETE" src/db/ --include="*.ts" 2>/dev/null | grep -v "test"; then
             echo "::warning::Potential SQL injection via string concatenation detected"
           fi
-          
+
           # Check for template literals without sql tag
           if grep -rE '\$\{.*\}.*FROM|WHERE|INSERT|UPDATE' src/db/ --include="*.ts" 2>/dev/null | grep -v "sql\`" | grep -v "test"; then
             echo "::warning::Template literal without sql tag detected - potential SQL injection"
           fi
-          
+
           echo "✅ SQL injection check completed"
 
       - name: Verify RLS policies (if applicable)
@@ -629,8 +629,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -680,7 +680,18 @@ jobs:
   ci-gate:
     name: "🚦 CI Gate"
     runs-on: ubuntu-latest
-    needs: [schema-check, custom-sql-validation, migration-test, concurrent-migration-safety, smoke-tests, data-integrity-tests, type-safety, security-scan, performance-baseline]
+    needs:
+      [
+        schema-check,
+        custom-sql-validation,
+        migration-test,
+        concurrent-migration-safety,
+        smoke-tests,
+        data-integrity-tests,
+        type-safety,
+        security-scan,
+        performance-baseline,
+      ]
     if: always()
     steps:
       - name: Check all jobs passed
@@ -696,56 +707,56 @@ jobs:
           echo "security-scan: ${{ needs.security-scan.result }}"
           echo "performance-baseline: ${{ needs.performance-baseline.result }}"
           echo "=========================="
-          
+
           # Critical checks (must pass)
           CRITICAL_FAILED=false
-          
+
           if [ "${{ needs.schema-check.result }}" != "success" ]; then
             echo "::error::Schema check failed"
             CRITICAL_FAILED=true
           fi
-          
+
           if [ "${{ needs.custom-sql-validation.result }}" != "success" ]; then
             echo "::error::Custom SQL validation failed"
             CRITICAL_FAILED=true
           fi
-          
+
           if [ "${{ needs.migration-test.result }}" != "success" ]; then
             echo "::error::Migration test failed"
             CRITICAL_FAILED=true
           fi
-          
+
           if [ "${{ needs.smoke-tests.result }}" != "success" ]; then
             echo "::error::Smoke tests failed"
             CRITICAL_FAILED=true
           fi
-          
+
           if [ "${{ needs.type-safety.result }}" != "success" ]; then
             echo "::error::Type safety check failed"
             CRITICAL_FAILED=true
           fi
-          
+
           if [ "${{ needs.security-scan.result }}" != "success" ]; then
             echo "::error::Security scan failed"
             CRITICAL_FAILED=true
           fi
-          
+
           # Non-critical checks (warnings)
           if [ "${{ needs.concurrent-migration-safety.result }}" != "success" ]; then
             echo "::warning::Concurrent migration safety check had issues"
           fi
-          
+
           if [ "${{ needs.data-integrity-tests.result }}" != "success" ]; then
             echo "::warning::Data integrity tests had issues"
           fi
-          
+
           if [ "${{ needs.performance-baseline.result }}" != "success" ]; then
             echo "::warning::Performance baseline check had issues"
           fi
-          
+
           if [ "$CRITICAL_FAILED" = "true" ]; then
             echo "::error::One or more critical CI checks failed"
             exit 1
           fi
-          
+
           echo "✅ All critical CI checks passed"

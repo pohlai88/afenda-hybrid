@@ -1,5 +1,9 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as schema from "./schema";
+import * as schema from "./schema-platform";
+import { benefitsRelations } from "./schema-hrm/benefits/_relations";
+import { learningRelations } from "./schema-hrm/learning/_relations";
+import { payrollRelations } from "./schema-hrm/payroll/_relations";
+import { securityRelations } from "./schema-platform/security/_relations";
 
 /** Same default as vitest.config.ts / vitest.db.config.ts (Docker test Postgres). */
 const DEFAULT_LOCAL_TEST_DATABASE_URL =
@@ -21,9 +25,13 @@ function resolveDatabaseUrl(): string {
   );
 }
 
-// Migrations use quoted camelCase identifiers (e.g. "tenantId"); match that at runtime
+// Migrations use quoted camelCase identifiers (e.g. "tenantId"); match that at runtime.
+// Relational `db.query.*` needs merged `defineRelations` outputs (Drizzle 1.0). Shared keys
+// (e.g. `tenants`, `employees`, `currencies`) must not be overwritten by a later spread unless
+// intentionally reconciled — payroll tables are disjoint from benefits/security table keys.
 export const db = drizzle(resolveDatabaseUrl(), {
   schema,
+  relations: { ...securityRelations, ...benefitsRelations, ...payrollRelations, ...learningRelations },
   casing: "camelCase",
 });
 

@@ -1,0 +1,2 @@
+ALTER TABLE "learning"."course_modules" DROP CONSTRAINT "chk_course_modules_sequence", ADD CONSTRAINT "chk_course_modules_sequence" CHECK ("sequenceNumber" >= 1 AND "sequenceNumber" <= 100);--> statement-breakpoint
+ALTER TABLE "learning"."learning_path_courses" DROP CONSTRAINT "chk_learning_path_courses_sequence", ADD CONSTRAINT "chk_learning_path_courses_sequence" CHECK ("sequenceNumber" >= 1 AND "sequenceNumber" <= 100);

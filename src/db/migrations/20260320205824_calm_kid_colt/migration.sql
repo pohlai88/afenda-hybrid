@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "uq_statutory_scheme_rates_scheme_effective_from" ON "payroll"."statutory_scheme_rates" ("statutorySchemeId","effectiveFrom") WHERE "deletedAt" IS NULL;--> statement-breakpoint

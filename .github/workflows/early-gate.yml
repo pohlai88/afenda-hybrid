@@ -7,16 +7,16 @@ on:
     branches: [main, develop]
   schedule:
     # Daily drift check at midnight UTC
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       auto_fix:
-        description: 'Run auto-fix before checks'
+        description: "Run auto-fix before checks"
         required: false
         default: false
         type: boolean
       strict_mode:
-        description: 'Treat warnings as errors'
+        description: "Treat warnings as errors"
         required: false
         default: false
         type: boolean
@@ -32,7 +32,7 @@ jobs:
   # ============================================================================
   # TIER 1: Instant checks (< 30 seconds) - Run on ALL PRs
   # ============================================================================
-  
+
   lint-check:
     name: "🔍 Lint Check"
     runs-on: ubuntu-latest
@@ -47,8 +47,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -75,8 +75,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -128,8 +128,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -183,18 +183,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run strict DB gate
         run: pnpm gate:strict
-      
+
       - name: Check index patterns
         run: pnpm check:indexes
-      
+
       - name: Check relation completeness
         run: pnpm check:relations
 
@@ -220,8 +220,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -270,8 +270,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -283,10 +283,10 @@ jobs:
       - name: Check for destructive migrations
         run: |
           echo "Checking for destructive operations in migrations..."
-          
+
           # Get changed migration files
           CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/db/migrations/**/*.sql' 2>/dev/null || true)
-          
+
           if [ -n "$CHANGED_MIGRATIONS" ]; then
             echo "Changed migrations:"
             echo "$CHANGED_MIGRATIONS"
@@ -346,8 +346,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -385,10 +385,10 @@ jobs:
       - name: Verify RLS patterns (if enabled)
         run: |
           echo "Checking RLS policy patterns..."
-          if grep -r "withRLS\|pgPolicy" src/db/schema/ 2>/dev/null; then
+          if grep -r "withRLS\|pgPolicy" src/db/schema-platform/ 2>/dev/null; then
             echo "RLS detected, verifying patterns..."
             # Ensure RLS policies reference tenant_id
-            if grep -r "pgPolicy" src/db/schema/ | grep -v "tenant_id"; then
+            if grep -r "pgPolicy" src/db/schema-platform/ | grep -v "tenant_id"; then
               echo "::warning::RLS policy without tenant_id reference detected"
             fi
           fi
@@ -415,8 +415,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -424,22 +424,22 @@ jobs:
       - name: Validate Custom SQL Registry
         run: |
           echo "Validating CUSTOM_SQL_REGISTRY.json..."
-          
+
           # Check registry exists
-          if [ ! -f "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+          if [ ! -f "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
             exit 1
           fi
-          
+
           # Validate JSON syntax
-          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
             exit 1
           fi
-          
+
           # Validate against schema
           pnpm check:custom-sql-registry
-          
+
           echo "✅ Custom SQL Registry validation passed"
 
       - name: Check schema documentation completeness
@@ -471,8 +471,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -506,7 +506,7 @@ jobs:
           git commit -m "chore: auto-fix schema issues
 
           Applied by CI auto-fix workflow.
-          
+
           Co-authored-by: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
           git push
 
@@ -517,7 +517,17 @@ jobs:
   early-gate:
     name: "🚦 Early Gate Status"
     runs-on: ubuntu-latest
-    needs: [lint-check, type-check, dependency-check, schema-drift, schema-quality, guideline-compliance, security-gate, documentation-sync]
+    needs:
+      [
+        lint-check,
+        type-check,
+        dependency-check,
+        schema-drift,
+        schema-quality,
+        guideline-compliance,
+        security-gate,
+        documentation-sync,
+      ]
     if: always()
     steps:
       - name: Evaluate gate status
@@ -532,45 +542,45 @@ jobs:
           echo "security-gate: ${{ needs.security-gate.result }}"
           echo "documentation-sync: ${{ needs.documentation-sync.result }}"
           echo "=========================="
-          
+
           # Critical failures (must pass)
           if [ "${{ needs.type-check.result }}" != "success" ]; then
             echo "::error::TypeScript check failed - blocking merge"
             exit 1
           fi
-          
+
           if [ "${{ needs.schema-drift.result }}" != "success" ]; then
             echo "::error::Schema drift detected - blocking merge"
             echo "Run 'pnpm db:generate' to create the migration for your schema changes."
             exit 1
           fi
-          
+
           if [ "${{ needs.schema-quality.result }}" != "success" ]; then
             echo "::error::Schema quality gate failed - blocking merge"
             exit 1
           fi
-          
+
           if [ "${{ needs.security-gate.result }}" != "success" ]; then
             echo "::error::Security gate failed - blocking merge"
             exit 1
           fi
-          
+
           if [ "${{ needs.documentation-sync.result }}" != "success" ]; then
             echo "::error::Documentation sync failed - blocking merge"
             exit 1
           fi
-          
+
           # Warnings (non-blocking but reported)
           if [ "${{ needs.lint-check.result }}" != "success" ]; then
             echo "::warning::Lint check had issues (non-blocking)"
           fi
-          
+
           if [ "${{ needs.dependency-check.result }}" != "success" ]; then
             echo "::warning::Dependency check had issues (non-blocking)"
           fi
-          
+
           if [ "${{ needs.guideline-compliance.result }}" != "success" ]; then
             echo "::warning::Guideline compliance check had issues"
           fi
-          
+
           echo "✅ Early gate passed!"

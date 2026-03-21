@@ -19,7 +19,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, SchemaInfo, TableInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/cross-schema-exceptions.json");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
@@ -264,7 +264,7 @@ function checkCircularDependencies(): void {
       const cycle = cyclePath.slice(cycleStart);
       
       issues.push({
-        file: "src/db/schema/",
+        file: "src/db/schema-platform/",
         line: 1,
         sourceSchema: cycle[0],
         sourceTable: "",

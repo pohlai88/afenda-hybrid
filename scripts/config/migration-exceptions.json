@@ -113,6 +113,22 @@
       "customSqlIds": ["CSQL-014"],
       "owner": "schema-owners",
       "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320203000_exit_interview_linked_checklist_trigger",
+      "rule": "migration-format",
+      "reason": "SQL-only hand migration (exit_interviews ↔ offboarding_checklists integrity; CSQL-015)",
+      "customSqlIds": ["CSQL-015"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
+    },
+    {
+      "migration": "20260320203000_exit_interview_linked_checklist_trigger",
+      "rule": "possible-hand-written",
+      "reason": "Cross-table PL/pgSQL triggers on recruitment.exit_interviews and offboarding_checklists",
+      "customSqlIds": ["CSQL-015"],
+      "owner": "schema-owners",
+      "date": "2026-03-20"
     }
   ]
 }

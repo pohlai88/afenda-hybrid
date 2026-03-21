@@ -13,7 +13,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, TableInfo, SchemaInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
 interface TypeIssue {
@@ -114,7 +114,7 @@ function checkIndexExports(schema: SchemaInfo): void {
   
   if (!fs.existsSync(indexPath)) {
     issues.push({
-      file: `src/db/schema/${schema.name}/index.ts`,
+      file: `src/db/schema-platform/${schema.name}/index.ts`,
       line: 1,
       table: schema.name,
       rule: "missing-barrel-export",
@@ -132,7 +132,7 @@ function checkIndexExports(schema: SchemaInfo): void {
     const fileName = path.basename(table.file, ".ts");
     if (!content.includes(`from "./${fileName}"`) && !content.includes(`from './${fileName}'`)) {
       issues.push({
-        file: `src/db/schema/${schema.name}/index.ts`,
+        file: `src/db/schema-platform/${schema.name}/index.ts`,
         line: 1,
         table: table.name,
         rule: "missing-table-export",
@@ -146,7 +146,7 @@ function checkIndexExports(schema: SchemaInfo): void {
   // Check that relations are exported
   if (schema.hasRelations && !content.includes("_relations")) {
     issues.push({
-      file: `src/db/schema/${schema.name}/index.ts`,
+      file: `src/db/schema-platform/${schema.name}/index.ts`,
       line: 1,
       table: schema.name,
       rule: "missing-relations-export",

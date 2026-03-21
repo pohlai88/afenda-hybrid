@@ -79,19 +79,20 @@ The AFENDA-HYBRID project implements a comprehensive CI gate system to ensure da
 
 #### Tier 1: Instant Checks (< 30 seconds)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `lint-check` | ESLint and formatting | No |
-| `type-check` | TypeScript compilation | **Yes** |
-| `dependency-check` | Lockfile integrity, audit | No |
+| Job                | Purpose                   | Blocking |
+| ------------------ | ------------------------- | -------- |
+| `lint-check`       | ESLint and formatting     | No       |
+| `type-check`       | TypeScript compilation    | **Yes**  |
+| `dependency-check` | Lockfile integrity, audit | No       |
 
 #### Tier 2: Schema Drift Detection (< 1 minute)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `schema-drift` | Detect uncommitted schema changes | **Yes** |
+| Job            | Purpose                           | Blocking |
+| -------------- | --------------------------------- | -------- |
+| `schema-drift` | Detect uncommitted schema changes | **Yes**  |
 
 **Checks performed:**
+
 - Schema file hash comparison
 - Migration sequence validation
 - drizzle-kit consistency
@@ -99,12 +100,13 @@ The AFENDA-HYBRID project implements a comprehensive CI gate system to ensure da
 
 #### Tier 3: Quality Gates (< 2 minutes)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `schema-quality` | Strict schema validation | **Yes** |
-| `guideline-compliance` | DB-first guideline checks | Warning |
+| Job                    | Purpose                   | Blocking |
+| ---------------------- | ------------------------- | -------- |
+| `schema-quality`       | Strict schema validation  | **Yes**  |
+| `guideline-compliance` | DB-first guideline checks | Warning  |
 
 **Checks performed:**
+
 - Index patterns (`check:indexes`)
 - Relation completeness (`check:relations`)
 - Enum consistency (`check:enums`)
@@ -115,11 +117,12 @@ The AFENDA-HYBRID project implements a comprehensive CI gate system to ensure da
 
 #### Tier 4: Breaking Change Detection (< 1 minute)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `breaking-change-detection` | Detect destructive changes | Warning |
+| Job                         | Purpose                    | Blocking |
+| --------------------------- | -------------------------- | -------- |
+| `breaking-change-detection` | Detect destructive changes | Warning  |
 
 **Detects:**
+
 - DROP TABLE
 - DROP COLUMN
 - TRUNCATE
@@ -128,11 +131,12 @@ The AFENDA-HYBRID project implements a comprehensive CI gate system to ensure da
 
 #### Tier 5: Security Gates (< 1 minute)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `security-gate` | Security validation | **Yes** |
+| Job             | Purpose             | Blocking |
+| --------------- | ------------------- | -------- |
+| `security-gate` | Security validation | **Yes**  |
 
 **Checks performed:**
+
 - Hardcoded secrets scan
 - Migration security patterns
 - RLS policy patterns
@@ -140,17 +144,19 @@ The AFENDA-HYBRID project implements a comprehensive CI gate system to ensure da
 
 #### Tier 6: Documentation Sync (< 30 seconds)
 
-| Job | Purpose | Blocking |
-|-----|---------|----------|
-| `documentation-sync` | Validate documentation | **Yes** |
+| Job                  | Purpose                | Blocking |
+| -------------------- | ---------------------- | -------- |
+| `documentation-sync` | Validate documentation | **Yes**  |
 
 **Checks performed:**
+
 - Custom SQL Registry validation
 - Schema documentation completeness
 
 ### Exit Criteria
 
 The early gate **blocks merge** if any of these fail:
+
 - TypeScript check
 - Schema drift detection
 - Schema quality gate
@@ -161,7 +167,7 @@ The early gate **blocks merge** if any of these fail:
 
 ### Triggers
 
-- **Pull Requests**: Changes to `src/db/schema/**`, `src/db/migrations/**`, `drizzle.config.ts`, `package.json`
+- **Pull Requests**: Changes to `src/db/schema-platform/**`, `src/db/migrations/**`, `drizzle.config.ts`, `package.json`
 - **Push**: Changes to schema/migrations on `main`
 
 ### Stages
@@ -191,6 +197,7 @@ pnpm check:custom-sql-syntax
 Tests migration application and idempotency.
 
 **Steps:**
+
 1. Create extensions (btree_gist, pgcrypto)
 2. Apply migrations (up)
 3. Verify schema structure
@@ -203,6 +210,7 @@ Tests migration application and idempotency.
 Validates migrations are safe for concurrent execution.
 
 **Checks:**
+
 - Non-concurrent index creation warnings
 - Lock timeout testing
 - Explicit LOCK TABLE detection
@@ -243,6 +251,7 @@ pnpm check:type-inference
 Deep security analysis of migrations.
 
 **Checks:**
+
 - Sensitive data patterns
 - Dangerous operations
 - Custom SQL documentation
@@ -254,12 +263,14 @@ Deep security analysis of migrations.
 Analyzes index coverage and query patterns.
 
 **Checks:**
+
 - Missing indexes on foreign keys
 - Query plan analysis
 
 ### Exit Criteria
 
 The database CI **blocks merge** if any of these fail:
+
 - Schema check
 - Custom SQL validation
 - Migration test
@@ -271,50 +282,50 @@ The database CI **blocks merge** if any of these fail:
 
 ### Schema Validation
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `check:naming` | Naming conventions | `pnpm check:naming` |
-| `check:structure` | Schema structure | `pnpm check:structure` |
-| `check:compliance` | Guideline compliance | `pnpm check:compliance` |
-| `check:tenant` | Tenant isolation | `pnpm check:tenant` |
-| `check:constraints` | Constraint patterns | `pnpm check:constraints` |
-| `check:shared` | Shared column usage | `pnpm check:shared` |
-| `check:indexes` | Index patterns | `pnpm check:indexes` |
-| `check:relations` | Relation completeness | `pnpm check:relations` |
-| `check:enums` | Enum consistency | `pnpm check:enums` |
-| `check:cross-schema` | Cross-schema deps | `pnpm check:cross-schema` |
+| Script               | Purpose               | Command                   |
+| -------------------- | --------------------- | ------------------------- |
+| `check:naming`       | Naming conventions    | `pnpm check:naming`       |
+| `check:structure`    | Schema structure      | `pnpm check:structure`    |
+| `check:compliance`   | Guideline compliance  | `pnpm check:compliance`   |
+| `check:tenant`       | Tenant isolation      | `pnpm check:tenant`       |
+| `check:constraints`  | Constraint patterns   | `pnpm check:constraints`  |
+| `check:shared`       | Shared column usage   | `pnpm check:shared`       |
+| `check:indexes`      | Index patterns        | `pnpm check:indexes`      |
+| `check:relations`    | Relation completeness | `pnpm check:relations`    |
+| `check:enums`        | Enum consistency      | `pnpm check:enums`        |
+| `check:cross-schema` | Cross-schema deps     | `pnpm check:cross-schema` |
 
 ### Migration Validation
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `check:migrations` | Migration format | `pnpm check:migrations` |
-| `check:drift` | Schema drift | `pnpm check:drift` |
-| `check:breaking-changes` | Breaking changes | `pnpm check:breaking-changes` |
+| Script                      | Purpose             | Command                          |
+| --------------------------- | ------------------- | -------------------------------- |
+| `check:migrations`          | Migration format    | `pnpm check:migrations`          |
+| `check:drift`               | Schema drift        | `pnpm check:drift`               |
+| `check:breaking-changes`    | Breaking changes    | `pnpm check:breaking-changes`    |
 | `check:custom-sql-registry` | Registry validation | `pnpm check:custom-sql-registry` |
-| `check:custom-sql-syntax` | SQL syntax | `pnpm check:custom-sql-syntax` |
+| `check:custom-sql-syntax`   | SQL syntax          | `pnpm check:custom-sql-syntax`   |
 
 ### Type Validation
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `check:branded-ids` | Branded ID consistency | `pnpm check:branded-ids` |
-| `check:type-inference` | Type exports | `pnpm check:type-inference` |
-| `db:verify-exports` | Zod schema exports | `pnpm db:verify-exports` |
+| Script                 | Purpose                | Command                     |
+| ---------------------- | ---------------------- | --------------------------- |
+| `check:branded-ids`    | Branded ID consistency | `pnpm check:branded-ids`    |
+| `check:type-inference` | Type exports           | `pnpm check:type-inference` |
+| `db:verify-exports`    | Zod schema exports     | `pnpm db:verify-exports`    |
 
 ### Security Validation
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `check:security` | Security patterns | `pnpm check:security` |
-| `check:rls-policies` | RLS policies | `pnpm check:rls-policies` |
+| Script               | Purpose           | Command                   |
+| -------------------- | ----------------- | ------------------------- |
+| `check:security`     | Security patterns | `pnpm check:security`     |
+| `check:rls-policies` | RLS policies      | `pnpm check:rls-policies` |
 
 ### Documentation Validation
 
-| Script | Purpose | Command |
-|--------|---------|---------|
-| `check:docs-sync` | Documentation sync | `pnpm check:docs-sync` |
-| `check:hr-audit-matrix` | `hr-schema-audit-matrix.md`: 112 rows + exact `talent` table set (17) | `pnpm check:hr-audit-matrix` |
+| Script                  | Purpose                                                               | Command                      |
+| ----------------------- | --------------------------------------------------------------------- | ---------------------------- |
+| `check:docs-sync`       | Documentation sync                                                    | `pnpm check:docs-sync`       |
+| `check:hr-audit-matrix` | `hr-schema-audit-matrix.md`: 114 rows + exact `talent` table set (17) | `pnpm check:hr-audit-matrix` |
 
 ## Running Locally
 
@@ -441,23 +452,23 @@ pnpm check:csql014-preflight
 Run after migrations are applied to the target DB but **before** promoting the release (or as a dedicated “data quality” job on staging):
 
 ```yaml
-  data-quality-csql014:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' # or deploy branches only
-    env:
-      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - name: CSQL-014 preflight (blocks if violations)
-        run: pnpm check:csql014-preflight
+data-quality-csql014:
+  runs-on: ubuntu-latest
+  if: github.ref == 'refs/heads/main' # or deploy branches only
+  env:
+    DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: "pnpm"
+    - run: pnpm install --frozen-lockfile
+    - name: CSQL-014 preflight (blocks if violations)
+      run: pnpm check:csql014-preflight
 ```
 
 Replace `STAGING_DATABASE_URL` with your secret; use a **read-only** role if your org requires it (the script only runs `SELECT COUNT`).
@@ -662,15 +673,15 @@ jobs:
 To emit **only** the JSON metrics line (for a follow-up `curl` / warehouse step), add to the **gap** step:
 
 ```yaml
-        env:
-          SUCCESSION_DEV_PLAN_GAP_JSON_LINE: "1"
+env:
+  SUCCESSION_DEV_PLAN_GAP_JSON_LINE: "1"
 ```
 
 The script appends **`development_plan_gap_count=<n>`** to **`GITHUB_OUTPUT`** when GitHub sets that env var (default on every step), which exposes **`steps.gap.outputs.development_plan_gap_count`**.
 
 **Strict nightly (red build when gap > 0):** on the report step set `SUCCESSION_DEV_PLAN_GAP_FAIL: 1`, or add `run: test "${{ steps.gap.outputs.development_plan_gap_count }}" -eq 0`.
 
-**Trends / metrics (optional):** the report script can emit **one JSON line** (`SUCCESSION_DEV_PLAN_GAP_JSON_LINE=1`) and appends to **`GITHUB_STEP_SUMMARY`** when GitHub provides it — see `docs/succession-plans-optional-development-plan-check.md` → *Metrics & trend charts*.
+**Trends / metrics (optional):** the report script can emit **one JSON line** (`SUCCESSION_DEV_PLAN_GAP_JSON_LINE=1`) and appends to **`GITHUB_STEP_SUMMARY`** when GitHub provides it — see `docs/succession-plans-optional-development-plan-check.md` → _Metrics & trend charts_.
 
 ## Talent: `case_links` orphan endpoints (optional report)
 
@@ -694,6 +705,7 @@ DATABASE_URL=... pnpm report:case-links-integrity
 ```
 
 **Solution:**
+
 ```bash
 pnpm db:generate
 git add src/db/migrations
@@ -707,8 +719,9 @@ git commit -m "chore: add migration for schema changes"
 ```
 
 **Solution:**
-1. Add entry to `src/db/schema/audit/CUSTOM_SQL_REGISTRY.json`
-2. Document in `src/db/schema/audit/CUSTOM_SQL.md`
+
+1. Add entry to `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`
+2. Document in `src/db/schema-platform/audit/CUSTOM_SQL.md`
 
 ### Type Safety Errors
 
@@ -717,6 +730,7 @@ git commit -m "chore: add migration for schema changes"
 ```
 
 **Solution:**
+
 ```typescript
 import { createSelectSchema, createInsertSchema } from "drizzle-orm/zod";
 
@@ -731,6 +745,7 @@ export const myTableInsertSchema = createInsertSchema(myTable);
 ```
 
 **Solution:**
+
 1. Review if the change is necessary
 2. Consider deprecation period
 3. Add comment to PR acknowledging the breaking change
@@ -739,11 +754,13 @@ export const myTableInsertSchema = createInsertSchema(myTable);
 ## Best Practices
 
 1. **Run gates locally** before pushing:
+
    ```bash
    pnpm gate:early
    ```
 
 2. **Use auto-fix** for common issues:
+
    ```bash
    pnpm fix:schema
    ```
@@ -751,6 +768,7 @@ export const myTableInsertSchema = createInsertSchema(myTable);
 3. **Document custom SQL** immediately when adding
 
 4. **Test migrations** against real database:
+
    ```bash
    pnpm docker:test:start
    pnpm db:migrate
@@ -762,5 +780,5 @@ export const myTableInsertSchema = createInsertSchema(myTable);
 ## Related Documentation
 
 - [DB-First Guideline](./architecture/01-db-first-guideline.md)
-- [Custom SQL Documentation](../src/db/schema/audit/CUSTOM_SQL.md)
-- [Custom SQL Registry](../src/db/schema/audit/CUSTOM_SQL_REGISTRY.json)
+- [Custom SQL Documentation](../src/db/schema-platform/audit/CUSTOM_SQL.md)
+- [Custom SQL Registry](../src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json)

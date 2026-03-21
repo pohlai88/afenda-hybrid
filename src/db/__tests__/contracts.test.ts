@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { getTableColumns, getTableName } from "drizzle-orm";
-import { tenants } from "../schema/core/tenants";
-import { regions } from "../schema/core/regions";
-import { organizations } from "../schema/core/organizations";
-import { locations } from "../schema/core/locations";
-import { users } from "../schema/security/users";
-import { employees } from "../schema/hr/fundamentals/employees";
+import { tenants } from "../schema-platform/core/tenants";
+import { regions } from "../schema-platform/core/regions";
+import { organizations } from "../schema-platform/core/organizations";
+import { locations } from "../schema-platform/core/locations";
+import { users } from "../schema-platform/security/users";
+import { employees } from "../schema-hrm/hr/fundamentals/employees";
 
 describe("Database Contract Tests", () => {
   describe("contract: core.tenants schema", () => {

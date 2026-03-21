@@ -15,7 +15,7 @@ import * as path from "path";
 import { createHash } from "crypto";
 
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
-const REGISTRY_PATH = path.join(process.cwd(), "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json");
+const REGISTRY_PATH = path.join(process.cwd(), "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json");
 const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/migration-exceptions.json");
 
 const quick = process.argv.includes("--quick");

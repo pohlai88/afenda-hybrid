@@ -17,8 +17,8 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const REGISTRY_PATH = path.join(process.cwd(), "src/db/schema/audit/CUSTOM_SQL_REGISTRY.json");
-const SCHEMA_PATH = path.join(process.cwd(), "src/db/schema/audit/CUSTOM_SQL_REGISTRY.schema.json");
+const REGISTRY_PATH = path.join(process.cwd(), "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json");
+const SCHEMA_PATH = path.join(process.cwd(), "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.schema.json");
 const MIGRATIONS_DIR = path.join(process.cwd(), "src/db/migrations");
 
 interface RegistryEntry {
@@ -72,7 +72,7 @@ function validateJsonSyntax(): Registry | null {
       rule: "registry-exists",
       message: "CUSTOM_SQL_REGISTRY.json does not exist",
       severity: "error",
-      suggestion: "Create the registry file at src/db/schema/audit/CUSTOM_SQL_REGISTRY.json",
+      suggestion: "Create the registry file at src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json",
     });
     return null;
   }

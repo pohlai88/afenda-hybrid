@@ -2,19 +2,19 @@ import { describe, it, expect } from "vitest";
 import {
   tenantInsertSchema,
   tenantUpdateSchema,
-} from "../schema/core/tenants";
+} from "../schema-platform/core/tenants";
 import {
   regionInsertSchema,
   regionUpdateSchema,
-} from "../schema/core/regions";
+} from "../schema-platform/core/regions";
 import {
   organizationInsertSchema,
   organizationUpdateSchema,
-} from "../schema/core/organizations";
+} from "../schema-platform/core/organizations";
 import {
   locationInsertSchema,
   locationUpdateSchema,
-} from "../schema/core/locations";
+} from "../schema-platform/core/locations";
 
 describe("Schema Validation Tests", () => {
   describe("tenant insert schema", () => {

@@ -1,73 +1,32 @@
 /**
  * Ensures docs/hr-schema-audit-matrix.md:
- * - Has EXPECTED_TABLES numbered data rows (112).
- * - Lists every Drizzle-modeled `talent` table exactly once (schema column `talent`, third column = Drizzle symbol).
+ * - Has EXPECTED_TABLE_ROWS numbered data rows.
+ * - Lists every required `talent` table exactly once.
+ * - Lists every required `recruitment` table exactly once (pipeline / compliance guard).
  *
- * Keep REQUIRED_TALENT_TABLES in sync with docs/talent-schema-inventory.md (17 tables).
+ * Shared rules: scripts/lib/hr-schema-audit-matrix-core.ts
+ * CI test: src/db/__tests__/hr-schema-audit-matrix.test.ts
  *
  * Run: pnpm check:hr-audit-matrix
  */
 import * as fs from "fs";
 import * as path from "path";
+import { verifyHrSchemaAuditMatrix } from "./lib/hr-schema-audit-matrix-core";
 
-const EXPECTED_TABLES = 112;
 const MATRIX_PATH = path.join(process.cwd(), "docs/hr-schema-audit-matrix.md");
-
-/** Third column for rows where schema is `talent` — must match the matrix and talent-schema-inventory.md. */
-const REQUIRED_TALENT_TABLES = [
-  "caseLinks",
-  "certifications",
-  "competencyFrameworks",
-  "competencySkills",
-  "disciplinaryActions",
-  "employeeCertifications",
-  "employeeSkills",
-  "goalTracking",
-  "grievanceRecords",
-  "performanceGoals",
-  "performanceReviewGoals",
-  "performanceReviews",
-  "promotionRecords",
-  "skills",
-  "successionPlans",
-  "talentPoolMemberships",
-  "talentPools",
-] as const;
 
 function main(): void {
   const text = fs.readFileSync(MATRIX_PATH, "utf-8");
-  const rowMatches = text.match(/^\|\s*\d+\s*\|/gm) ?? [];
-  const count = rowMatches.length;
-  if (count !== EXPECTED_TABLES) {
-    console.error(
-      `hr-schema-audit-matrix.md: expected ${EXPECTED_TABLES} data rows, found ${count}. Update the matrix or EXPECTED_TABLES.`
-    );
+  const { ok, errors } = verifyHrSchemaAuditMatrix(text);
+
+  if (!ok) {
+    for (const e of errors) {
+      console.error(e);
+    }
     process.exit(1);
   }
 
-  const talentRowRe = /^\|\s*\d+\s*\|\s*talent\s*\|\s*(\w+)\s*\|/gm;
-  const found: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = talentRowRe.exec(text)) !== null) {
-    found.push(m[1]!);
-  }
-
-  const sortedFound = [...found].sort();
-  const sortedReq = [...REQUIRED_TALENT_TABLES].sort();
-  const sameLength = sortedFound.length === sortedReq.length;
-  const sameMembers =
-    sameLength && sortedFound.every((name, i) => name === sortedReq[i]);
-
-  if (!sameMembers) {
-    console.error(
-      "hr-schema-audit-matrix.md: talent section must list exactly these tables (once each):\n" +
-        `  Expected (${sortedReq.length}): ${sortedReq.join(", ")}\n` +
-        `  Found (${sortedFound.length}): ${sortedFound.join(", ")}`
-    );
-    process.exit(1);
-  }
-
-  console.log(`OK: audit matrix has ${count} table rows and ${found.length} talent tables.`);
+  console.log("OK: hr-schema-audit-matrix.md passed verification (row count, talent, recruitment).");
 }
 
 main();

@@ -3,7 +3,9 @@
  * 
  * Rules:
  * - Each schema directory has an index.ts barrel export
- * - Each schema has a _relations.ts file (if tables exist)
+ * - Each schema has a _relations.ts file when it defines tables at that path, unless nested under a
+ *   domain that already has `../_relations.ts` (e.g. `hr/fundamentals` → `hr/_relations.ts`)
+ * - Domain `_shared` subfolders may hold enum/mixin modules only (no Drizzle tables); require index.ts
  * - Tables export type definitions
  * - Proper tier organization (core, security, audit = Tier 1-2, others = Tier 3)
  * 
@@ -16,7 +18,8 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
+const DB_DIR = path.join(process.cwd(), "src/db");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
 interface ValidationError {
@@ -57,6 +60,18 @@ function getCodeSnippet(content: string, lineNum: number, context: number = 1): 
     snippetLines.push(`${prefix} ${lineNumStr} | ${lines[i]}`);
   }
   return snippetLines.join("\n");
+}
+
+/** e.g. `talent/_shared` — enum/mixin modules, not Drizzle tables. */
+function isSchemaSharedMixinDir(schemaName: string): boolean {
+  return schemaName.endsWith("/_shared");
+}
+
+/** Nested `fundamentals` / `operations` / … use the domain root `_relations.ts` (e.g. `hr/_relations.ts`). */
+function hasParentDomainRelationsFile(schemaPath: string, schemaName: string): boolean {
+  if (!schemaName.includes("/")) return false;
+  const parentDir = path.dirname(schemaPath);
+  return fs.existsSync(path.join(parentDir, "_relations.ts"));
 }
 
 function checkSchemaDirectory(schemaPath: string, schemaName: string): void {
@@ -108,7 +123,10 @@ function checkSchemaDirectory(schemaPath: string, schemaName: string): void {
 
   if (hasTableFiles) {
     const relationsPath = path.join(schemaPath, "_relations.ts");
-    if (!fs.existsSync(relationsPath)) {
+    /** Mixin-only dirs, or nested slices covered by `domain/_relations.ts`. */
+    const skipLocalRelationsFile =
+      isSchemaSharedMixinDir(schemaName) || hasParentDomainRelationsFile(schemaPath, schemaName);
+    if (!fs.existsSync(relationsPath) && !skipLocalRelationsFile) {
       errors.push({
         file: `${relativePath}/_relations.ts`,
         line: 1,
@@ -125,6 +143,9 @@ function checkSchemaDirectory(schemaPath: string, schemaName: string): void {
   files
     .filter((f) => f.endsWith(".ts") && !f.startsWith("_") && f !== "index.ts")
     .forEach((tableFile) => {
+      if (isSchemaSharedMixinDir(schemaName)) {
+        return;
+      }
       const tablePath = path.join(schemaPath, tableFile);
       const content = fs.readFileSync(tablePath, "utf-8");
       const tableRelPath = `${relativePath}/${tableFile}`;
@@ -189,7 +210,7 @@ function checkTierStructure(): void {
 
           if (tableCount > 3) {
             errors.push({
-              file: `src/db/schema/${schemaName}`,
+              file: `src/db/schema-platform/${schemaName}`,
               line: 1,
               column: 1,
               rule: "tier3-structure",
@@ -204,17 +225,17 @@ function checkTierStructure(): void {
 }
 
 function checkSharedMixins(): void {
-  const sharedPath = path.join(SCHEMA_DIR, "_shared");
-  
+  const sharedPath = path.join(DB_DIR, "_shared");
+
   if (!fs.existsSync(sharedPath)) {
     errors.push({
-      file: "src/db/schema/_shared",
+      file: "src/db/_shared",
       line: 1,
       column: 1,
       rule: "shared-mixins",
       message: "Missing _shared directory for column mixins",
       severity: "error",
-      suggestion: "Create _shared/ with timestamps.ts, auditColumns.ts, and index.ts",
+      suggestion: "Create src/db/_shared/ with timestamps.ts, auditColumns.ts, and index.ts",
     });
     return;
   }
@@ -228,7 +249,7 @@ function checkSharedMixins(): void {
   for (const { file, desc } of requiredMixins) {
     if (!fs.existsSync(path.join(sharedPath, file))) {
       errors.push({
-        file: `src/db/schema/_shared/${file}`,
+        file: `src/db/_shared/${file}`,
         line: 1,
         column: 1,
         rule: "required-mixin",
@@ -242,7 +263,7 @@ function checkSharedMixins(): void {
   // Check for index.ts in _shared
   if (!fs.existsSync(path.join(sharedPath, "index.ts"))) {
     errors.push({
-      file: "src/db/schema/_shared/index.ts",
+      file: "src/db/_shared/index.ts",
       line: 1,
       column: 1,
       rule: "barrel-export",
@@ -258,7 +279,7 @@ function checkMainIndex(): void {
   
   if (!fs.existsSync(mainIndexPath)) {
     errors.push({
-      file: "src/db/schema/index.ts",
+      file: "src/db/schema-platform/index.ts",
       line: 1,
       column: 1,
       rule: "main-barrel",
@@ -278,7 +299,7 @@ function checkMainIndex(): void {
       if (!content.includes(`"./${entry.name}"`) && !content.includes(`'./${entry.name}'`)) {
         const loc = findLineAndColumn(content, "export");
         errors.push({
-          file: "src/db/schema/index.ts",
+          file: "src/db/schema-platform/index.ts",
           line: loc.line,
           column: loc.column,
           rule: "barrel-completeness",

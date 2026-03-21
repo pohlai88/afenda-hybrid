@@ -1,0 +1,3 @@
+ALTER TABLE "recruitment"."exit_interviews" ALTER COLUMN "linkedOffboardingChecklistId" SET NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_exit_interviews_linked_checklist_active" ON "recruitment"."exit_interviews" ("linkedOffboardingChecklistId") WHERE "deletedAt" IS NULL;--> statement-breakpoint
+ALTER TABLE "recruitment"."exit_interviews" DROP CONSTRAINT "fk_exit_interviews_offboarding_checklist", ADD CONSTRAINT "fk_exit_interviews_offboarding_checklist" FOREIGN KEY ("linkedOffboardingChecklistId") REFERENCES "recruitment"."offboarding_checklists"("offboardingChecklistId") ON DELETE RESTRICT ON UPDATE CASCADE;

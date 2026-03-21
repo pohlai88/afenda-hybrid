@@ -1,7 +1,7 @@
 {
   "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
   "*.{json,md,yml,yaml}": ["prettier --write"],
-  "src/db/schema/**/*.ts": [
+  "src/db/schema-platform/**/*.ts": [
     "pnpm check:naming",
     "pnpm check:compliance"
   ]

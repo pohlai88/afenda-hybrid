@@ -1,0 +1,1 @@
+CREATE INDEX "idx_offer_letters_application_start" ON "recruitment"."offer_letters" ("tenantId","applicationId","startDate");--> statement-breakpoint

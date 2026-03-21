@@ -24,7 +24,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const EXCEPTIONS_FILE = path.join(process.cwd(), "scripts/config/shared-exceptions.json");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
@@ -251,12 +251,39 @@ function checkFile(filePath: string, exceptions: Exception[]): void {
 // Columns that are intentionally explicit and should not trigger duplicate warnings
 const EXPLICIT_COLUMNS = ["tenantId"];
 
+/**
+ * Repeated stable domain vocabulary (FK + workflow columns) across bounded contexts.
+ * Guideline §5.1 allows explicit repetition until a typed column builder exists; duplicate warnings are noise here.
+ */
+const DOMAIN_WIDE_SKIP_DUPLICATE_WARNING = new Set([
+  "employeeId",
+  "personId",
+  "positionId",
+  "legalEntityId",
+  "currencyId",
+  "description",
+  "reason",
+  "notes",
+  "rejectionReason",
+  "effectiveFrom",
+  "effectiveTo",
+  "approvedBy",
+  "approvedAt",
+  "startDate",
+  "completedDate",
+  "expiryDate",
+  "isPrimary",
+]);
+
 function detectDuplicatePatterns(): void {
   const fingerprints = new Map<string, ColumnFingerprint[]>();
 
   for (const col of columnFingerprints) {
     // Skip columns that use shared mixins or are intentionally explicit
     if ([...MANDATORY_SHARED, ...RECOMMENDED_SHARED, ...EXPLICIT_COLUMNS].includes(col.name)) {
+      continue;
+    }
+    if (DOMAIN_WIDE_SKIP_DUPLICATE_WARNING.has(col.name)) {
       continue;
     }
 

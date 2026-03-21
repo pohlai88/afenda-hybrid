@@ -1,0 +1,2 @@
+ALTER TABLE "recruitment"."candidate_salary_backfill_issues" ADD COLUMN "createdAt" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "recruitment"."candidate_salary_backfill_issues" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT now() NOT NULL;

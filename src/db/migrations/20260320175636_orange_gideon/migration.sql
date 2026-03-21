@@ -1,0 +1,1 @@
+CREATE INDEX "idx_background_checks_candidate_requested_date" ON "recruitment"."background_checks" ("tenantId","candidateId","requestedDate");--> statement-breakpoint

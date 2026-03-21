@@ -6,8 +6,8 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const schemaPath = join(__dirname, '../src/db/schema/audit/CUSTOM_SQL_REGISTRY.schema.json');
-const registryPath = join(__dirname, '../src/db/schema/audit/CUSTOM_SQL_REGISTRY.json');
+const schemaPath = join(__dirname, '../src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.schema.json');
+const registryPath = join(__dirname, '../src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json');
 
 try {
   const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));

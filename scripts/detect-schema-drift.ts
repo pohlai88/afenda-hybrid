@@ -8,7 +8,7 @@
 import * as path from "path";
 import { execSync } from "child_process";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 
 const allowDrift = process.argv.includes("--allow-drift");
 
@@ -36,7 +36,7 @@ function getUncommittedSchemaChanges(schemaDir: string): string[] {
       .map(line => line.trim())
       .filter(line => line.length > 0)
       .map(line => {
-        // Parse git status output: " M src/db/schema/core/tenants.ts"
+        // Parse git status output: " M src/db/schema-platform/core/tenants.ts"
         const match = line.match(/^\s*\S+\s+(.+)$/);
         return match ? match[1] : line;
       });

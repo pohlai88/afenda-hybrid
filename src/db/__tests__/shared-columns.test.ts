@@ -6,7 +6,7 @@ import {
   MANDATORY_SHARED_COLUMNS,
   RECOMMENDED_SHARED_COLUMNS,
   ALL_SHARED_FINGERPRINTS,
-} from "../schema/_shared";
+} from "../_shared";
 
 describe("Shared Column Mixins", () => {
   describe("timestampColumns", () => {
@@ -76,10 +76,10 @@ describe("Shared Column Mixins", () => {
 
 describe("Shared Column Usage in Core Schema", () => {
   it("core tables use timestampColumns mixin", async () => {
-    const { tenants } = await import("../schema/core/tenants");
-    const { regions } = await import("../schema/core/regions");
-    const { organizations } = await import("../schema/core/organizations");
-    const { locations } = await import("../schema/core/locations");
+    const { tenants } = await import("../schema-platform/core/tenants");
+    const { regions } = await import("../schema-platform/core/regions");
+    const { organizations } = await import("../schema-platform/core/organizations");
+    const { locations } = await import("../schema-platform/core/locations");
 
     // All core tables should have timestamp columns
     for (const table of [tenants, regions, organizations, locations]) {
@@ -89,10 +89,10 @@ describe("Shared Column Usage in Core Schema", () => {
   });
 
   it("core tables use softDeleteColumns mixin", async () => {
-    const { tenants } = await import("../schema/core/tenants");
-    const { regions } = await import("../schema/core/regions");
-    const { organizations } = await import("../schema/core/organizations");
-    const { locations } = await import("../schema/core/locations");
+    const { tenants } = await import("../schema-platform/core/tenants");
+    const { regions } = await import("../schema-platform/core/regions");
+    const { organizations } = await import("../schema-platform/core/organizations");
+    const { locations } = await import("../schema-platform/core/locations");
 
     // All core tables should have soft delete column
     for (const table of [tenants, regions, organizations, locations]) {
@@ -101,16 +101,16 @@ describe("Shared Column Usage in Core Schema", () => {
   });
 
   it("tenant-scoped tables have tenantId column", async () => {
-    const { organizations } = await import("../schema/core/organizations");
-    const { locations } = await import("../schema/core/locations");
+    const { organizations } = await import("../schema-platform/core/organizations");
+    const { locations } = await import("../schema-platform/core/locations");
 
     expect(organizations).toHaveProperty("tenantId");
     expect(locations).toHaveProperty("tenantId");
   });
 
   it("audited tables have audit columns", async () => {
-    const { organizations } = await import("../schema/core/organizations");
-    const { locations } = await import("../schema/core/locations");
+    const { organizations } = await import("../schema-platform/core/organizations");
+    const { locations } = await import("../schema-platform/core/locations");
 
     expect(organizations).toHaveProperty("createdBy");
     expect(organizations).toHaveProperty("updatedBy");

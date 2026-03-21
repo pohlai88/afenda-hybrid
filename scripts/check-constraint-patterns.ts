@@ -17,7 +17,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
 // Columns that are intentionally nullable (scope fields in audit)
@@ -29,6 +29,25 @@ const NULLABLE_COLUMN_EXEMPT: Record<string, string[]> = {
 const ENUM_NO_DEFAULT_EXEMPT: Record<string, string[]> = {
   audit_trail: ["operation"], // Always explicitly set by trigger
 };
+
+/** Only primary lifecycle enum columns need a DB default per §7 — not historical `previousStatus` / `newStatus` pairs. */
+function enumColumnExpectsDatabaseDefault(colName: string): boolean {
+  const n = colName.toLowerCase();
+  if (/^(previous|new|old|prior|next)/i.test(colName)) return false;
+  return n === "status" || n.endsWith("status") || n === "state" || n.endsWith("state");
+}
+
+/** Optional human names / labels that match *Name heuristics but are intentionally nullable */
+const OPTIONAL_NAME_LIKE_COLUMNS = new Set([
+  "middleName",
+  "vendorName",
+  "providerName",
+  "branchName",
+  "schemeName",
+]);
+
+/** Optional *Code fields matched by required heuristics */
+const OPTIONAL_CODE_LIKE_COLUMNS = new Set(["postalCode", "bankCode"]);
 
 interface ConstraintIssue {
   file: string;
@@ -162,7 +181,9 @@ function checkConstraintPatterns(filePath: string): void {
       // Check if column is exempt for this table
       const tableExempt = NULLABLE_COLUMN_EXEMPT[tableName] || [];
       if (tableExempt.includes(colName)) continue;
-      
+      if (name === "Name" && OPTIONAL_NAME_LIKE_COLUMNS.has(colName)) continue;
+      if (name === "Code" && OPTIONAL_CODE_LIKE_COLUMNS.has(colName)) continue;
+
       const loc = findLineAndColumn(content, match[0]);
       issues.push({
         file: relativePath,
@@ -185,6 +206,12 @@ function checkConstraintPatterns(filePath: string): void {
   for (const match of enumColMatches) {
     const colName = match[1];
     const enumName = match[2];
+
+    if (!enumColumnExpectsDatabaseDefault(colName)) continue;
+
+    // Nullable enums: no DB default required (see chained `.notNull()` after `Enum()`)
+    const afterEnum = content.slice(match.index, Math.min(content.length, match.index + 100));
+    if (!afterEnum.includes(".notNull()")) continue;
     
     // Skip if this column is exempt from default requirement
     if (enumNoDefaultExempt.includes(colName)) continue;

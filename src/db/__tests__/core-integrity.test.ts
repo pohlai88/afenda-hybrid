@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
-import { tenants } from "../schema/core/tenants";
-import { organizations } from "../schema/core/organizations";
-import { regions } from "../schema/core/regions";
-import { locations } from "../schema/core/locations";
+import { tenants } from "../schema-platform/core/tenants";
+import { organizations } from "../schema-platform/core/organizations";
+import { regions } from "../schema-platform/core/regions";
+import { locations } from "../schema-platform/core/locations";
 import { sql, inArray } from "drizzle-orm";
 import { matchesPgError } from "./pg-error";
 

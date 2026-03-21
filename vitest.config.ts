@@ -1,4 +1,8 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Default Vitest config for `pnpm vitest` / `pnpm test`.
@@ -12,6 +16,11 @@ const DATABASE_URL =
 export default defineConfig({
   /** Avoid clearing the terminal in watch mode (better on narrow / Windows consoles). */
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@db": path.resolve(__dirname, "src/db"),
+    },
+  },
   test: {
     include: ["src/**/*.test.ts"],
     setupFiles: ["./src/db/__tests__/setup.ts"],

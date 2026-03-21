@@ -17,7 +17,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, TableInfo, SchemaInfo, FKInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const EXCEPTIONS_PATH = path.join(process.cwd(), "scripts/config/relations-exceptions.json");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
@@ -110,7 +110,7 @@ function checkForeignKeyRelations(table: TableInfo, schema: SchemaInfo): void {
     
     if (!hasRelation) {
       issues.push({
-        file: `src/db/schema/${schema.name}/_relations.ts`,
+        file: `src/db/schema-platform/${schema.name}/_relations.ts`,
         line: 1,
         table: table.name,
         rule: "missing-fk-relation",
@@ -132,7 +132,7 @@ function checkForeignKeyRelations(table: TableInfo, schema: SchemaInfo): void {
       
       if (!hasNamedRelation) {
         issues.push({
-          file: `src/db/schema/${schema.name}/_relations.ts`,
+          file: `src/db/schema-platform/${schema.name}/_relations.ts`,
           line: 1,
           table: table.name,
           rule: "relation-naming",
@@ -189,7 +189,7 @@ function checkPolymorphicFkRelations(
       
       if (!hasRelation) {
         issues.push({
-          file: `src/db/schema/${schema.name}/_relations.ts`,
+          file: `src/db/schema-platform/${schema.name}/_relations.ts`,
           line: 1,
           table: table.name,
           rule: "missing-polymorphic-relation",
@@ -221,7 +221,7 @@ function checkBidirectionalRelations(schema: SchemaInfo): void {
       // Check if this is excepted (foundational tables don't need inverse relations)
       if (!isExcepted(exceptions, oneRel, "missing-bidirectional-relation")) {
         issues.push({
-          file: `src/db/schema/${schema.name}/_relations.ts`,
+          file: `src/db/schema-platform/${schema.name}/_relations.ts`,
           line: 1,
           table: oneRel,
           rule: "missing-bidirectional-relation",

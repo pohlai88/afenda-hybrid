@@ -14,7 +14,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, SchemaInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
+const DB_DIR = path.join(process.cwd(), "src/db");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
 interface EnumIssue {
@@ -269,7 +270,7 @@ function main(): void {
   }
   
   // Check _shared for common enums
-  const sharedDir = path.join(SCHEMA_DIR, "_shared");
+  const sharedDir = path.join(DB_DIR, "_shared");
   if (fs.existsSync(sharedDir)) {
     const sharedFiles = fs.readdirSync(sharedDir)
       .filter(f => f.endsWith(".ts"))

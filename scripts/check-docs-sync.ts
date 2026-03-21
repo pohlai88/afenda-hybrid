@@ -14,7 +14,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { analyzeSchema, SchemaInfo, TableInfo } from "./lib/schema-analyzer";
 
-const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema");
+const SCHEMA_DIR = path.join(process.cwd(), "src/db/schema-platform");
 const DOCS_DIR = path.join(process.cwd(), "docs");
 const strictWarnings = process.argv.includes("--strict-warnings") || process.env.CI_STRICT_WARNINGS === "1";
 
@@ -33,7 +33,7 @@ function checkSchemaReadme(schema: SchemaInfo): void {
   
   if (!fs.existsSync(readmePath)) {
     issues.push({
-      file: `src/db/schema/${schema.name}/README.md`,
+      file: `src/db/schema-platform/${schema.name}/README.md`,
       rule: "missing-readme",
       message: `Schema "${schema.name}" is missing README.md`,
       severity: "info",
@@ -48,7 +48,7 @@ function checkSchemaReadme(schema: SchemaInfo): void {
   for (const table of schema.tables) {
     if (!content.includes(table.name)) {
       issues.push({
-        file: `src/db/schema/${schema.name}/README.md`,
+        file: `src/db/schema-platform/${schema.name}/README.md`,
         rule: "undocumented-table",
         message: `Table "${table.name}" is not documented in README.md`,
         severity: "info",
@@ -65,7 +65,7 @@ function checkSchemaReadme(schema: SchemaInfo): void {
     
     if (!exists) {
       issues.push({
-        file: `src/db/schema/${schema.name}/README.md`,
+        file: `src/db/schema-platform/${schema.name}/README.md`,
         rule: "outdated-table-doc",
         message: `Documentation references table "${match[1]}" which doesn't exist`,
         severity: "warning",
@@ -85,7 +85,7 @@ function checkCustomSqlDocs(): void {
   
   if (!fs.existsSync(customSqlMdPath)) {
     issues.push({
-      file: "src/db/schema/audit/CUSTOM_SQL.md",
+      file: "src/db/schema-platform/audit/CUSTOM_SQL.md",
       rule: "missing-custom-sql-docs",
       message: "CUSTOM_SQL.md documentation file is missing",
       severity: "warning",
@@ -103,7 +103,7 @@ function checkCustomSqlDocs(): void {
   for (const [id, entry] of Object.entries(registry.entries || {})) {
     if (!docContent.includes(id)) {
       issues.push({
-        file: "src/db/schema/audit/CUSTOM_SQL.md",
+        file: "src/db/schema-platform/audit/CUSTOM_SQL.md",
         rule: "undocumented-custom-sql",
         message: `Custom SQL "${id}" is not documented in CUSTOM_SQL.md`,
         severity: "warning",
