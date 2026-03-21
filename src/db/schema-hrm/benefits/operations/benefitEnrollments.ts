@@ -45,10 +45,6 @@ export const benefitCoverageLevels = [
   "CUSTOM",
 ] as const;
 
-export const benefitCoverageLevelEnum = benefitsSchema.enum("benefit_coverage_level", [
-  ...benefitCoverageLevels,
-]);
-
 export const CoverageLevelSchema = z.enum(benefitCoverageLevels);
 export type CoverageLevel = z.infer<typeof CoverageLevelSchema>;
 
@@ -66,7 +62,7 @@ export const benefitEnrollments = benefitsSchema.table(
     effectiveFrom: date().notNull(),
     effectiveTo: date(),
     employeeContribution: numeric({ precision: 10, scale: 2 }),
-    coverageLevel: benefitCoverageLevelEnum(),
+    coverageLevel: text(),
     /** Lifecycle: `PENDING` | `ACTIVE` | `SUSPENDED` | `TERMINATED` | `CANCELLED`. */
     status: enrollmentStatusEnum().notNull().default("PENDING"),
     terminationReason: text(),
@@ -79,6 +75,7 @@ export const benefitEnrollments = benefitsSchema.table(
     index("idx_benefit_enrollments_employee").on(t.tenantId, t.employeeId),
     index("idx_benefit_enrollments_plan").on(t.tenantId, t.benefitPlanId),
     index("idx_benefit_enrollments_status").on(t.tenantId, t.status),
+    index("idx_benefit_enrollments_created").on(t.tenantId, t.createdAt),
     index("idx_benefit_enrollments_effective").on(t.tenantId, t.effectiveFrom, t.effectiveTo),
     uniqueIndex("uq_benefit_enrollments_active")
       .on(t.tenantId, t.employeeId, t.benefitPlanId)

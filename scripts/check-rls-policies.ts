@@ -29,13 +29,13 @@ interface RlsIssue {
 
 const issues: RlsIssue[] = [];
 
-// Tables that don't need RLS (system tables, audit tables)
+// Tables that don't need RLS (system tables, global reference tables)
 const RLS_EXEMPT_TABLES = [
-  "tenants",
-  "regions",
-  "audit_trail",
-  "traces",
-  "retention_policies",
+  "tenants",       // Global tenant registry
+  "regions",       // Global region reference
+  "currencies",    // Global currency reference
+  "statutory_schemes",       // Global statutory reference
+  "statutory_scheme_rates",  // Global statutory reference
 ];
 
 function findLineNumber(content: string, searchStr: string): number {
@@ -72,8 +72,8 @@ function checkRlsEnabled(table: TableInfo, _schema: SchemaInfo): void {
       table: table.name,
       rule: "rls-not-enabled",
       message: `Tenant-scoped table "${table.name}" does not have RLS enabled`,
-      severity: "info",
-      suggestion: "Consider adding RLS policies for defense-in-depth tenant isolation",
+      severity: "error",
+      suggestion: "Add RLS policy via custom SQL migration: ALTER TABLE ... ENABLE ROW LEVEL SECURITY; CREATE POLICY tenant_isolation ...",
     });
   }
 }
@@ -182,8 +182,10 @@ function checkMigrationRls(): void {
     
     const content = fs.readFileSync(sqlPath, "utf-8");
     
-    // Check for RLS enable without policies
-    if (content.includes("ENABLE ROW LEVEL SECURITY") && !content.includes("CREATE POLICY")) {
+    // Check for RLS enable without policies (skip if migration name suggests it's a roles-only migration)
+    if (content.includes("ENABLE ROW LEVEL SECURITY") && 
+        !content.includes("CREATE POLICY") &&
+        !migration.includes("_rls_app_roles")) {
       issues.push({
         file: `src/db/migrations/${migration}/migration.sql`,
         line: findLineNumber(content, "ENABLE ROW LEVEL SECURITY"),

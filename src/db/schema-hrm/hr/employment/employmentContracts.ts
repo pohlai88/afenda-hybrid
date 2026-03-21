@@ -57,6 +57,7 @@ export const employmentContracts = hrSchema.table(
     index("idx_employment_contracts_employee").on(t.tenantId, t.employeeId),
     index("idx_employment_contracts_type").on(t.tenantId, t.contractType),
     index("idx_employment_contracts_status").on(t.tenantId, t.status),
+    index("idx_employment_contracts_created").on(t.tenantId, t.createdAt),
     index("idx_employment_contracts_dates").on(t.tenantId, t.startDate, t.endDate),
     uniqueIndex("uq_employment_contracts_code")
       .on(t.tenantId, sql`lower(${t.contractCode})`)

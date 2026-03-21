@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { talentSchema } from "../_schema";
 import { appendOnlyTimestampColumns } from "../../../_shared";
 import { performanceGoals } from "./performanceGoals";
+import { tenants } from "../../../schema-platform/core/tenants";
 
 /**
  * Goal Tracking - Progress metrics for performance goals.
@@ -39,6 +40,7 @@ export const goalTracking = talentSchema.table(
   "goal_tracking",
   {
     trackingId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     goalId: integer().notNull(),
     trackingDate: date().notNull(),
     progressPercent: smallint().notNull(),
@@ -49,10 +51,18 @@ export const goalTracking = talentSchema.table(
     ...appendOnlyTimestampColumns,
   },
   (t) => [
-    index("idx_goal_tracking_goal").on(t.goalId),
-    index("idx_goal_tracking_date").on(t.goalId, t.trackingDate),
-    index("idx_goal_tracking_tracking_date").on(t.trackingDate),
-    uniqueIndex("uq_goal_tracking_goal_date").on(t.goalId, t.trackingDate),
+    index("idx_goal_tracking_tenant").on(t.tenantId),
+    index("idx_goal_tracking_goal").on(t.tenantId, t.goalId),
+    index("idx_goal_tracking_date").on(t.tenantId, t.goalId, t.trackingDate),
+    index("idx_goal_tracking_tracking_date").on(t.tenantId, t.trackingDate),
+    uniqueIndex("uq_goal_tracking_goal_date").on(t.tenantId, t.goalId, t.trackingDate),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_goal_tracking_tenant",
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.goalId],
       foreignColumns: [performanceGoals.goalId],

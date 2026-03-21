@@ -294,6 +294,10 @@ echo $env:DATABASE_URL
 pnpm db:prepare
 ```
 
+See `.env.example` for all documented variables (database, optional GitHub PAT for local tooling, optional script flags).
+
+**GitHub token note:** If you add `GITHUB_PERSONAL_ACCESS_TOKEN` to `.env`, Drizzle and other Node tools that load `dotenv` will see it. **Cursor’s GitHub MCP** does not read the project `.env`; configure the MCP server in Cursor (or set the variable in your user/system environment) if searches or PR tools fail with “Bad credentials”.
+
 ---
 
 ## 🎯 Common Tasks

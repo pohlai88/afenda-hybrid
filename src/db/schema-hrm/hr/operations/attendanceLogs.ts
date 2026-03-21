@@ -47,6 +47,7 @@ export const attendanceLogs = hrSchema.table(
     index("idx_attendance_logs_tenant").on(t.tenantId),
     index("idx_attendance_logs_employee").on(t.tenantId, t.employeeId, t.attendanceDate),
     index("idx_attendance_logs_date").on(t.tenantId, t.attendanceDate),
+    index("idx_attendance_logs_created").on(t.tenantId, t.createdAt),
     index("idx_attendance_logs_type").on(t.tenantId, t.attendanceType, t.attendanceDate),
     index("idx_attendance_logs_shift").on(t.tenantId, t.shiftAssignmentId),
     index("idx_attendance_logs_timesheet").on(t.tenantId, t.timesheetId),

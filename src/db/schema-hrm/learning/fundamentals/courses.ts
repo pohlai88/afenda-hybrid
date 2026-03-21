@@ -70,6 +70,7 @@ export const courses = learningSchema.table(
     index("idx_courses_tenant").on(t.tenantId),
     index("idx_courses_format").on(t.tenantId, t.format),
     index("idx_courses_status").on(t.tenantId, t.status),
+    index("idx_courses_created").on(t.tenantId, t.createdAt),
     index("idx_courses_mandatory").on(t.tenantId, t.isMandatory),
     uniqueIndex("uq_courses_code")
       .on(t.tenantId, sql`lower(${t.courseCode})`)

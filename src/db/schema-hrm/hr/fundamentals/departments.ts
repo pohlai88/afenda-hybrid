@@ -43,6 +43,8 @@ export const departments = hrSchema.table(
   },
   (t) => [
     index("idx_departments_tenant").on(t.tenantId),
+    index("idx_departments_status").on(t.tenantId, t.status),
+    index("idx_departments_created").on(t.tenantId, t.createdAt),
     index("idx_departments_organization").on(t.tenantId, t.organizationId),
     index("idx_departments_legal_entity").on(t.tenantId, t.legalEntityId),
     index("idx_departments_cost_center").on(t.tenantId, t.costCenterId),

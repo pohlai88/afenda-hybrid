@@ -14,10 +14,12 @@ import {
   orderedSequenceNumberSchema,
 } from "../_zodShared";
 import { timestampColumns, softDeleteColumns, auditColumns, nameColumn } from "../../../_shared";
+import { tenants } from "../../../schema-platform/core/tenants";
 import { courses } from "./courses";
 
 /**
  * Course Modules - Lessons inside courses.
+ * tenantId is denormalized from parent course for RLS enforcement.
  */
 export const moduleStatuses = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
 
@@ -30,6 +32,7 @@ export const courseModules = learningSchema.table(
   "course_modules",
   {
     moduleId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     courseId: integer().notNull(),
     moduleCode: text().notNull(),
     ...nameColumn,
@@ -43,15 +46,23 @@ export const courseModules = learningSchema.table(
     ...auditColumns,
   },
   (t) => [
-    index("idx_course_modules_course").on(t.courseId),
-    index("idx_course_modules_sequence").on(t.courseId, t.sequenceNumber),
-    index("idx_course_modules_status").on(t.status),
+    index("idx_course_modules_tenant").on(t.tenantId),
+    index("idx_course_modules_course").on(t.tenantId, t.courseId),
+    index("idx_course_modules_sequence").on(t.tenantId, t.courseId, t.sequenceNumber),
+    index("idx_course_modules_status").on(t.tenantId, t.status),
     uniqueIndex("uq_course_modules_code")
-      .on(t.courseId, sql`lower(${t.moduleCode})`)
+      .on(t.tenantId, t.courseId, sql`lower(${t.moduleCode})`)
       .where(sql`${t.deletedAt} IS NULL`),
     uniqueIndex("uq_course_modules_sequence")
-      .on(t.courseId, t.sequenceNumber)
+      .on(t.tenantId, t.courseId, t.sequenceNumber)
       .where(sql`${t.deletedAt} IS NULL`),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_course_modules_tenant",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.courseId],
       foreignColumns: [courses.courseId],

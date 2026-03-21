@@ -5,15 +5,18 @@ import { sql } from "drizzle-orm";
 import { hrSchema } from "../_schema";
 import { dateStringSchema, nullableOptional } from "../_zodShared";
 import { timestampColumns, softDeleteColumns } from "../../../_shared";
+import { tenants } from "../../../schema-platform/core/tenants";
 import { holidayCalendars } from "./holidayCalendars";
 
 /**
  * Holiday Calendar Entries - Individual holiday dates within a calendar.
+ * tenantId is denormalized from parent calendar for RLS enforcement.
  */
 export const holidayCalendarEntries = hrSchema.table(
   "holiday_calendar_entries",
   {
     entryId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     calendarId: integer().notNull(),
     holidayDate: date().notNull(),
     name: text().notNull(),
@@ -23,11 +26,19 @@ export const holidayCalendarEntries = hrSchema.table(
     ...softDeleteColumns,
   },
   (t) => [
-    index("idx_holiday_calendar_entries_calendar").on(t.calendarId),
-    index("idx_holiday_calendar_entries_date").on(t.calendarId, t.holidayDate),
+    index("idx_holiday_calendar_entries_tenant").on(t.tenantId),
+    index("idx_holiday_calendar_entries_calendar").on(t.tenantId, t.calendarId),
+    index("idx_holiday_calendar_entries_date").on(t.tenantId, t.calendarId, t.holidayDate),
     uniqueIndex("uq_holiday_calendar_entries_date")
-      .on(t.calendarId, t.holidayDate)
+      .on(t.tenantId, t.calendarId, t.holidayDate)
       .where(sql`${t.deletedAt} IS NULL`),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_holiday_calendar_entries_tenant",
+    })
+      .onDelete("restrict")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.calendarId],
       foreignColumns: [holidayCalendars.calendarId],

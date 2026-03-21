@@ -52,6 +52,7 @@ export const positions = hrSchema.table(
     index("idx_positions_job_role").on(t.tenantId, t.jobRoleId),
     index("idx_positions_job_grade").on(t.tenantId, t.jobGradeId),
     index("idx_positions_status").on(t.tenantId, t.status),
+    index("idx_positions_created").on(t.tenantId, t.createdAt),
     uniqueIndex("uq_positions_code")
       .on(t.tenantId, sql`lower(${t.positionCode})`)
       .where(sql`${t.deletedAt} IS NULL`),

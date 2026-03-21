@@ -57,6 +57,7 @@ export const employees = hrSchema.table(
     index("idx_employees_tenant").on(t.tenantId),
     index("idx_employees_person").on(t.tenantId, t.personId),
     index("idx_employees_status").on(t.tenantId, t.status),
+    index("idx_employees_created").on(t.tenantId, t.createdAt),
     index("idx_employees_department").on(t.tenantId, t.departmentId),
     index("idx_employees_position").on(t.tenantId, t.positionId),
     index("idx_employees_manager").on(t.tenantId, t.managerId),

@@ -1,55 +1,176 @@
-# `src/db/_services`
+# Database Services Layer
 
-**Purpose:** **Application-oriented database helpers** — orchestration, defense-in-depth validation (e.g. Zod `parse` on inserts), and **stable error types** (`code` fields) for flows that APIs, jobs, or CLIs drive. They coordinate `Database` / transactions with table modules and may delegate multi-table reads to [`_queries`](../_queries/README.md).
+This directory contains service modules that provide a clean API for database operations.
+Services encapsulate business logic, authorization checks, and session context management.
 
-## What belongs here
+## Conventions
 
-- **Tenant and parent alignment** before insert when the database cannot express cross-row `tenantId` equality (see ADR 0002 / recruitment docs).
-- One **bounded context** per subfolder (today: **`recruitment/`**).
+### File Naming
 
-## What does _not_ belong here
+- One service file per domain: `leaveService.ts`, `payrollService.ts`, `employeeService.ts`
+- Shared utilities: `_utils.ts`, `_types.ts`
+- Authorization: `authorization.ts` (already implemented)
 
-- **Table definitions** — `schema-platform/` and `schema-hrm/` only.
-- **Global column mixins / Zod wire primitives** — [`_shared`](../_shared/README.md).
-- **Pure multi-table reads** with no use-case-specific policy — often better as [`_queries`](../_queries/README.md); services can call those queries.
+### Service Structure
 
-## Layout
+```typescript
+// Example: leaveService.ts
 
+import { db } from "../db";
+import { setSessionContext } from "../_session/setSessionContext";
+import { can, AuthContext } from "./authorization";
+import { leaveRequests, leaveBalances } from "../schema-hrm/hr";
+
+export interface LeaveServiceContext {
+  tenantId: number;
+  userId: number;
+  departmentId?: number;
+}
+
+export async function getLeaveRequests(
+  ctx: LeaveServiceContext,
+  filters?: { status?: string; employeeId?: number }
+) {
+  // 1. Set session context for RLS
+  await setSessionContext(ctx.tenantId, ctx.userId);
+
+  // 2. Check authorization
+  const authCtx: AuthContext = { userId: ctx.userId, tenantId: ctx.tenantId };
+  const canView = await can(authCtx, "leave", "view");
+  if (!canView.allowed) {
+    throw new Error(`Unauthorized: ${canView.reason}`);
+  }
+
+  // 3. Execute query using Drizzle relational API
+  return db.query.leaveRequests.findMany({
+    where: (lr, { eq, and }) => {
+      const conditions = [];
+      if (filters?.status) conditions.push(eq(lr.status, filters.status));
+      if (filters?.employeeId) conditions.push(eq(lr.employeeId, filters.employeeId));
+      return conditions.length > 0 ? and(...conditions) : undefined;
+    },
+    with: {
+      employee: true,
+      leaveType: true,
+      approver: true,
+    },
+  });
+}
+
+export async function approveLeaveRequest(
+  ctx: LeaveServiceContext,
+  leaveRequestId: number
+) {
+  await setSessionContext(ctx.tenantId, ctx.userId);
+
+  // Check authorization with resource context
+  const authCtx: AuthContext = { 
+    userId: ctx.userId, 
+    tenantId: ctx.tenantId,
+    departmentId: ctx.departmentId,
+  };
+  const canApprove = await can(authCtx, "leave", "approve", {
+    // Resource context for policy evaluation
+    departmentId: ctx.departmentId,
+  });
+  if (!canApprove.allowed) {
+    throw new Error(`Unauthorized: ${canApprove.reason}`);
+  }
+
+  // Execute update
+  return db
+    .update(leaveRequests)
+    .set({
+      status: "APPROVED",
+      approvedBy: ctx.userId,
+      approvedAt: new Date(),
+      updatedBy: ctx.userId,
+    })
+    .where(eq(leaveRequests.leaveRequestId, leaveRequestId))
+    .returning();
+}
 ```
-_services/
-├── index.ts                    # Root barrel: explicit re-exports per area (no `export *`)
-└── <area>/
-    ├── index.ts                # Area barrel
-    └── *Service.ts             # e.g. createX with guards + schema.parse
+
+### Key Principles
+
+1. **Session Context First**: Always call `setSessionContext()` before any database operation.
+   This ensures RLS policies are enforced.
+
+2. **Authorization Check**: Use the `can()` function to check permissions before operations.
+   Pass resource context for dynamic policy evaluation.
+
+3. **Relational Queries**: Use Drizzle's relational API (`db.query.*`) for reads.
+   This leverages the relations defined in `db.ts`.
+
+4. **Explicit Audit Fields**: Always set `createdBy`/`updatedBy` in mutations.
+   These are required columns.
+
+5. **Return Types**: Return Drizzle's inferred types or explicitly typed DTOs.
+   Avoid returning raw query results.
+
+### Error Handling
+
+```typescript
+export class ServiceError extends Error {
+  constructor(
+    message: string,
+    public code: "UNAUTHORIZED" | "NOT_FOUND" | "VALIDATION" | "CONFLICT",
+    public details?: unknown
+  ) {
+    super(message);
+    this.name = "ServiceError";
+  }
+}
+
+// Usage
+if (!canApprove.allowed) {
+  throw new ServiceError(
+    `Cannot approve leave: ${canApprove.reason}`,
+    "UNAUTHORIZED",
+    { matchedPolicy: canApprove.matchedPolicy }
+  );
+}
 ```
 
-## Import rules
+### Transaction Support
 
-| Scope                          | Rule                                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| **Inside** `_services/<area>/` | **Relative** imports between siblings (`./applicationsService` only if needed; usually one file per service). |
-| **Cross-area** under `src/db`  | **`@db/*`**: `@db/db`, `@db/schema-hrm/...`, optionally `@db/_queries/...`.                                   |
+```typescript
+import { db } from "../db";
 
-## Public API (barrels)
+export async function transferEmployee(
+  ctx: ServiceContext,
+  employeeId: number,
+  newDepartmentId: number
+) {
+  await setSessionContext(ctx.tenantId, ctx.userId);
 
-- Import from **`@db/_services/recruitment`** (area) or **`@db/_services`** (full re-export of wired areas).
-- Barrels use **explicit named exports** only — no `export *`.
+  return db.transaction(async (tx) => {
+    // Update employee
+    await tx
+      .update(employees)
+      .set({ departmentId: newDepartmentId, updatedBy: ctx.userId })
+      .where(eq(employees.employeeId, employeeId));
 
-## How this fits with other layers
+    // Create transfer record
+    await tx.insert(employeeTransfers).values({
+      tenantId: ctx.tenantId,
+      employeeId,
+      toDepartmentId: newDepartmentId,
+      effectiveDate: new Date(),
+      createdBy: ctx.userId,
+      updatedBy: ctx.userId,
+    });
+  });
+}
+```
 
-| Layer          | Relationship to `_services`                                                                        |
-| -------------- | -------------------------------------------------------------------------------------------------- |
-| **`_queries`** | Optional dependency: services may call shared query helpers instead of duplicating SQL.            |
-| **`_session`** | Callers should set session context before writes that hit audit/RLS; services do not replace that. |
-| **`_shared`**  | Not imported for orchestration; schema tables use mixins from `_shared` independently.             |
+## Available Services
 
-## Tests
+- `authorization.ts` - Permission checking with 3-layer cascade (direct, role, policy)
 
-Integration coverage for tenant guards lives in [`src/db/__tests__/`](../__tests__/) (e.g. `*-tenant-consistency.test.ts`). Import services via **`@db/_services/recruitment`** (or `@db/_services`) so resolution matches Vitest’s `@db` alias. Co-located `src/db/_services/**/__tests__` is fine for future unit-only tests.
+## Planned Services
 
-## See also
-
-- [Database layer overview](../README.md)
-- [`_shared`](../_shared/README.md) · [`_session`](../_session/README.md) · [`_queries`](../_queries/README.md)
-- [ADR 0002 — recruitment enforcement](../../../docs/architecture/adr/0002-recruitment-lifecycle-enforcement.md)
-- [DB-first guideline](../../../docs/architecture/01-db-first-guideline.md)
+- `leaveService.ts` - Leave request management
+- `payrollService.ts` - Payroll run and payslip operations
+- `employeeService.ts` - Employee CRUD and lifecycle
+- `recruitmentService.ts` - Candidate and application management

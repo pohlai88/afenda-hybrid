@@ -14,6 +14,7 @@ import { learningPathCourses } from "../fundamentals/learningPathCourses";
 import { learningPathAssignments } from "./learningPathAssignments";
 import { courseEnrollments } from "./courseEnrollments";
 import { trainingEnrollments } from "./trainingEnrollments";
+import { tenants } from "../../../schema-platform/core/tenants";
 
 /**
  * Per-assignment progress against a row in `learning_path_courses`.
@@ -33,6 +34,7 @@ export const learningPathCourseProgress = learningSchema.table(
   "learning_path_course_progress",
   {
     pathCourseProgressId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     pathAssignmentId: integer().notNull(),
     pathCourseId: integer().notNull(),
     status: pathCourseProgressStatusEnum().notNull().default("NOT_STARTED"),
@@ -44,12 +46,20 @@ export const learningPathCourseProgress = learningSchema.table(
     ...auditColumns,
   },
   (t) => [
-    index("idx_learning_path_course_progress_assignment").on(t.pathAssignmentId),
-    index("idx_learning_path_course_progress_path_course").on(t.pathCourseId),
-    index("idx_learning_path_course_progress_status").on(t.pathAssignmentId, t.status),
+    index("idx_learning_path_course_progress_tenant").on(t.tenantId),
+    index("idx_learning_path_course_progress_assignment").on(t.tenantId, t.pathAssignmentId),
+    index("idx_learning_path_course_progress_path_course").on(t.tenantId, t.pathCourseId),
+    index("idx_learning_path_course_progress_status").on(t.tenantId, t.pathAssignmentId, t.status),
     uniqueIndex("uq_learning_path_course_progress_assignment_course")
-      .on(t.pathAssignmentId, t.pathCourseId)
+      .on(t.tenantId, t.pathAssignmentId, t.pathCourseId)
       .where(sql`${t.deletedAt} IS NULL`),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_learning_path_course_progress_tenant",
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.pathAssignmentId],
       foreignColumns: [learningPathAssignments.pathAssignmentId],

@@ -94,6 +94,7 @@ export const candidates = recruitmentSchema.table(
   (t) => [
     index("idx_candidates_tenant").on(t.tenantId),
     index("idx_candidates_source").on(t.tenantId, t.source),
+    index("idx_candidates_created").on(t.tenantId, t.createdAt),
     /**
      * Prefix `(tenantId, status)` is covered by this B-tree; do not add a separate `idx_candidates_status`
      * (redundant writes).

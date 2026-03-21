@@ -73,6 +73,7 @@ export const successionPlans = talentSchema.table(
     index("idx_succession_plans_successor").on(t.tenantId, t.successorId),
     index("idx_succession_plans_readiness").on(t.tenantId, t.readinessLevel),
     index("idx_succession_plans_status").on(t.tenantId, t.status),
+    index("idx_succession_plans_created").on(t.tenantId, t.createdAt),
     index("idx_succession_plans_active_target")
       .on(t.tenantId, t.targetDate)
       .where(

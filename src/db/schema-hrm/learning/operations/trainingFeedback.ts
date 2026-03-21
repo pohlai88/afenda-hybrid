@@ -6,6 +6,7 @@ import { learningSchema } from "../_schema";
 import { longTextSchema, nullableOptional, trainingRating1to5OptionalSchema, trainingRating1to5Schema } from "../_zodShared";
 import { timestampColumns, softDeleteColumns } from "../../../_shared";
 import { trainingSessions } from "./trainingSessions";
+import { tenants } from "../../../schema-platform/core/tenants";
 
 /**
  * Training Feedback - Participant evaluations of training sessions.
@@ -15,6 +16,7 @@ export const trainingFeedback = learningSchema.table(
   "training_feedback",
   {
     feedbackId: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: integer().notNull(),
     sessionId: integer().notNull(),
     employeeId: integer().notNull(),
     overallRating: smallint().notNull(),
@@ -28,11 +30,19 @@ export const trainingFeedback = learningSchema.table(
     ...softDeleteColumns,
   },
   (t) => [
-    index("idx_training_feedback_session").on(t.sessionId),
-    index("idx_training_feedback_employee").on(t.employeeId),
+    index("idx_training_feedback_tenant").on(t.tenantId),
+    index("idx_training_feedback_session").on(t.tenantId, t.sessionId),
+    index("idx_training_feedback_employee").on(t.tenantId, t.employeeId),
     uniqueIndex("uq_training_feedback_session_employee")
-      .on(t.sessionId, t.employeeId)
+      .on(t.tenantId, t.sessionId, t.employeeId)
       .where(sql`${t.deletedAt} IS NULL`),
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [tenants.tenantId],
+      name: "fk_training_feedback_tenant",
+    })
+      .onDelete("cascade")
+      .onUpdate("cascade"),
     foreignKey({
       columns: [t.sessionId],
       foreignColumns: [trainingSessions.sessionId],

@@ -5,5 +5,7 @@
 export * from "./users";
 export * from "./roles";
 export * from "./userRoles";
+export * from "./permissions";
+export * from "./policies";
 export * from "./servicePrincipals";
 export * from "./_relations";

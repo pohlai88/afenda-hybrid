@@ -50,6 +50,7 @@ export const persons = hrSchema.table(
   (t) => [
     index("idx_persons_tenant").on(t.tenantId),
     index("idx_persons_status").on(t.tenantId, t.status),
+    index("idx_persons_created").on(t.tenantId, t.createdAt),
     index("idx_persons_nationality").on(t.tenantId, t.nationality),
     uniqueIndex("uq_persons_code")
       .on(t.tenantId, sql`lower(${t.personCode})`)

@@ -1,9 +1,14 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema-platform";
-import { benefitsRelations } from "./schema-hrm/benefits/_relations";
-import { learningRelations } from "./schema-hrm/learning/_relations";
-import { payrollRelations } from "./schema-hrm/payroll/_relations";
+import { coreRelations } from "./schema-platform/core/_relations";
 import { securityRelations } from "./schema-platform/security/_relations";
+import { auditRelations } from "./schema-platform/audit/_relations";
+import { hrRelations } from "./schema-hrm/hr/_relations";
+import { payrollRelations } from "./schema-hrm/payroll/_relations";
+import { benefitsRelations } from "./schema-hrm/benefits/_relations";
+import { talentRelations } from "./schema-hrm/talent/_relations";
+import { learningRelations } from "./schema-hrm/learning/_relations";
+import { recruitmentRelations } from "./schema-hrm/recruitment/_relations";
 
 /** Same default as vitest.config.ts / vitest.db.config.ts (Docker test Postgres). */
 const DEFAULT_LOCAL_TEST_DATABASE_URL =
@@ -29,9 +34,23 @@ function resolveDatabaseUrl(): string {
 // Relational `db.query.*` needs merged `defineRelations` outputs (Drizzle 1.0). Shared keys
 // (e.g. `tenants`, `employees`, `currencies`) must not be overwritten by a later spread unless
 // intentionally reconciled — payroll tables are disjoint from benefits/security table keys.
+//
+// All 9 relation sets are merged here to enable relational queries across all modules:
+// - Platform: core, security, audit
+// - HRM: hr, payroll, benefits, talent, learning, recruitment
 export const db = drizzle(resolveDatabaseUrl(), {
   schema,
-  relations: { ...securityRelations, ...benefitsRelations, ...payrollRelations, ...learningRelations },
+  relations: {
+    ...coreRelations,
+    ...securityRelations,
+    ...auditRelations,
+    ...hrRelations,
+    ...payrollRelations,
+    ...benefitsRelations,
+    ...talentRelations,
+    ...learningRelations,
+    ...recruitmentRelations,
+  },
   casing: "camelCase",
 });
 

@@ -355,6 +355,7 @@ export const payrollRuns = payrollSchema.table(
     index("idx_payroll_runs_period").on(t.tenantId, t.payrollPeriodId),
     index("idx_payroll_runs_date").on(t.tenantId, t.runDate),
     index("idx_payroll_runs_status").on(t.tenantId, t.status),
+    index("idx_payroll_runs_created").on(t.tenantId, t.createdAt),
     index("idx_payroll_runs_legal_entity").on(t.tenantId, t.legalEntityId),
     uniqueIndex("uq_payroll_runs_code")
       .on(t.tenantId, sql`lower(${t.runCode})`)

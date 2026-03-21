@@ -343,6 +343,7 @@ export const payslips = payrollSchema.table(
     index("idx_payslips_employee").on(t.tenantId, t.employeeId),
     index("idx_payslips_period").on(t.tenantId, t.periodStart, t.periodEnd),
     index("idx_payslips_status").on(t.tenantId, t.status),
+    index("idx_payslips_created").on(t.tenantId, t.createdAt),
     uniqueIndex("uq_payslips_number")
       .on(t.tenantId, sql`lower(${t.payslipNumber})`)
       .where(sql`${t.deletedAt} IS NULL`),

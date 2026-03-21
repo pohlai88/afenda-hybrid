@@ -10,7 +10,7 @@ pnpm install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with your DATABASE_URL
+# Edit `.env`: set `DATABASE_URL` (required). Optional keys are described in `.env.example`.
 
 # For testing: Start Docker test database
 pnpm docker:test:start

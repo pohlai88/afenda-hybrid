@@ -70,6 +70,7 @@ export const grievanceRecords = talentSchema.table(
     index("idx_grievance_records_type").on(t.tenantId, t.grievanceType),
     index("idx_grievance_records_status").on(t.tenantId, t.status),
     index("idx_grievance_records_date").on(t.tenantId, t.submissionDate),
+    index("idx_grievance_records_created").on(t.tenantId, t.createdAt),
     /** Reporting / date-range filters (e.g. “last quarter”) */
     index("idx_grievance_records_incident").on(t.tenantId, t.incidentDate),
     index("idx_grievance_records_assigned").on(t.tenantId, t.assignedTo),

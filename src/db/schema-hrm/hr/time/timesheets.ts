@@ -50,6 +50,7 @@ export const timesheets = hrSchema.table(
     index("idx_timesheets_employee").on(t.tenantId, t.employeeId),
     index("idx_timesheets_period").on(t.tenantId, t.periodStart, t.periodEnd),
     index("idx_timesheets_status").on(t.tenantId, t.status),
+    index("idx_timesheets_created").on(t.tenantId, t.createdAt),
     uniqueIndex("uq_timesheets_employee_period")
       .on(t.tenantId, t.employeeId, t.periodStart, t.periodEnd)
       .where(sql`${t.deletedAt} IS NULL`),

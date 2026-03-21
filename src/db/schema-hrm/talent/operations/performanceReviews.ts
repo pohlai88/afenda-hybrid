@@ -86,6 +86,7 @@ export const performanceReviews = talentSchema.table(
     index("idx_performance_reviews_reviewer").on(t.tenantId, t.reviewerId),
     index("idx_performance_reviews_type").on(t.tenantId, t.reviewType),
     index("idx_performance_reviews_status").on(t.tenantId, t.status),
+    index("idx_performance_reviews_created").on(t.tenantId, t.createdAt),
     index("idx_performance_reviews_period").on(t.tenantId, t.reviewPeriodStart, t.reviewPeriodEnd),
     index("idx_performance_reviews_period_end_active")
       .on(t.tenantId, t.reviewPeriodEnd)

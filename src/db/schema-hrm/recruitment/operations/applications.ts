@@ -62,6 +62,7 @@ export const applications = recruitmentSchema.table(
     index("idx_applications_requisition").on(t.tenantId, t.requisitionId),
     index("idx_applications_status").on(t.tenantId, t.status),
     index("idx_applications_date").on(t.tenantId, t.applicationDate),
+    index("idx_applications_created").on(t.tenantId, t.createdAt),
     /** Lists per candidate by recency: `WHERE tenantId AND candidateId ORDER BY applicationDate DESC`. */
     index("idx_applications_tenant_candidate_date").on(t.tenantId, t.candidateId, t.applicationDate),
     uniqueIndex("uq_applications_candidate_requisition")

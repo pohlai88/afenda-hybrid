@@ -58,6 +58,7 @@ export const leaveRequests = hrSchema.table(
     index("idx_leave_requests_type").on(t.tenantId, t.leaveTypeId),
     index("idx_leave_requests_balance").on(t.tenantId, t.leaveBalanceId),
     index("idx_leave_requests_status").on(t.tenantId, t.status, t.startDate),
+    index("idx_leave_requests_created").on(t.tenantId, t.createdAt),
     index("idx_leave_requests_approver").on(t.tenantId, t.approvedBy),
     index("idx_leave_requests_date_range").on(t.tenantId, t.startDate, t.endDate),
     foreignKey({
