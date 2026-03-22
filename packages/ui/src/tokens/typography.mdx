@@ -1,0 +1,99 @@
+{/* @meta title: Tokens/Typography */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Tokens/Typography" />
+
+# Typography
+
+The AFENDA design system uses two font stacks defined as CSS custom properties.
+Tailwind classes map directly to these variables.
+
+---
+
+## Font Families
+
+| Token | Stack | Tailwind Class |
+|-------|-------|----------------|
+| `--font-sans` | Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif | `font-sans` |
+| `--font-display` | Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif | `font-display` |
+
+> Both currently resolve to Inter. Override `--font-display` in `globals.css` if
+> a distinct display face is introduced in the future.
+
+---
+
+## Type Scale
+
+The design system uses Tailwind's default type scale. Below are the sizes most
+commonly used in the AFENDA UI.
+
+<div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginTop: "1rem" }}>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-xs (12px)</code>
+    <div style={{ fontSize: 12 }}>Badge labels, helper text, timestamps</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-sm (14px)</code>
+    <div style={{ fontSize: 14 }}>Body text, table cells, form labels</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-base (16px)</code>
+    <div style={{ fontSize: 16 }}>Input values, primary body copy</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-lg (18px)</code>
+    <div style={{ fontSize: 18 }}>Dialog titles, section headers</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-xl (20px)</code>
+    <div style={{ fontSize: 20 }}>Page subtitles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-2xl (24px)</code>
+    <div style={{ fontSize: 24, fontWeight: 700 }}>Metric values, card titles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 12, color: "var(--muted-foreground, #71717a)" }}>text-3xl (30px)</code>
+    <div style={{ fontSize: 30, fontWeight: 700 }}>Page headings</div>
+  </div>
+</div>
+
+---
+
+## Font Weights
+
+| Weight | Tailwind | Usage |
+|--------|----------|-------|
+| 400 | `font-normal` | Body text, descriptions |
+| 500 | `font-medium` | Labels, table headers, nav items |
+| 600 | `font-semibold` | Card titles, dialog titles, badges |
+| 700 | `font-bold` | Page headings, metric values |
+
+---
+
+## Line Heights
+
+| Class | Value | Usage |
+|-------|-------|-------|
+| `leading-none` | 1 | Titles with tight spacing |
+| `leading-tight` | 1.25 | Card headers |
+| `leading-normal` | 1.5 | Body text |
+| `leading-relaxed` | 1.625 | Long-form descriptions |
+
+---
+
+## Usage Examples
+
+```html
+<!-- Page heading -->
+<h1 class="text-3xl font-bold tracking-tight">Employees</h1>
+
+<!-- Card title -->
+<h3 class="text-2xl font-semibold leading-none tracking-tight">Open Positions</h3>
+
+<!-- Body text -->
+<p class="text-sm text-muted-foreground">Showing 1-20 of 143 employees</p>
+
+<!-- Helper / caption -->
+<span class="text-xs text-muted-foreground">Last updated 2 hours ago</span>
+```
