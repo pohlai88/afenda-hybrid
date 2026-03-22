@@ -20,6 +20,9 @@ export const workflowInstanceStatusEnum = coreSchema.enum("workflow_instance_sta
 export const WorkflowInstanceStatusSchema = z.enum(workflowInstanceStatuses);
 export type WorkflowInstanceStatus = z.infer<typeof WorkflowInstanceStatusSchema>;
 
+/**
+ * workflow_instances — runtime workflow run for a concrete record; current state and completion.
+ */
 export const workflowInstances = coreSchema.table(
   "workflow_instances",
   {

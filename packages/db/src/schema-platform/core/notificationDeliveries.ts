@@ -25,6 +25,9 @@ export const notificationDeliveryStatusEnum = coreSchema.enum("notification_deli
 export const NotificationDeliveryStatusSchema = z.enum(notificationDeliveryStatuses);
 export type NotificationDeliveryStatus = z.infer<typeof NotificationDeliveryStatusSchema>;
 
+/**
+ * notification_deliveries — per-channel delivery attempts and outcomes for a notification.
+ */
 export const notificationDeliveries = coreSchema.table(
   "notification_deliveries",
   {

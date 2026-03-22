@@ -54,6 +54,7 @@
     "gate:docs": "pnpm --filter @afenda/db gate:docs",
     "gate:full": "pnpm --filter @afenda/db gate:full",
     "gate:360": "pnpm --filter @afenda/db gate:360",
+    "gate:360:local": "pnpm --filter @afenda/db gate:360:local",
     "fix:schema": "pnpm --filter @afenda/db fix:schema",
     "fix:schema:dry": "pnpm --filter @afenda/db fix:schema:dry",
     "fix:lint": "pnpm --filter @afenda/db fix:lint",

@@ -406,6 +406,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect docs / doc-checker changes
+        id: docs_paths
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ Non-PR event: running full docs slice (docs-sync + hr-audit-matrix)"
+            exit 0
+          fi
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          RX='^docs/|^packages/db/src/.+README\.md$|^packages/db/scripts/ci/check-docs-sync\.ts$|^packages/db/scripts/ci/check-architecture-docs\.ts$|^packages/db/scripts/ci/verify-hr-schema-audit-matrix\.ts$|^\.github/workflows/early-gate\.yml$|^CONTRIBUTING\.md$|^\.github/pull_request_template\.md$'
+          if git diff --name-only "$BASE" "$HEAD" | grep -qE "$RX"; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ Docs-related paths changed: will run docs-sync + hr-audit-matrix"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ Skipping docs-sync + hr-audit-matrix (no docs/checker changes in PR)"
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -445,9 +466,9 @@ jobs:
       - name: Check architecture documentation layout
         run: pnpm check:architecture-docs
 
-      - name: Check schema documentation completeness
-        run: pnpm check:docs-sync || true
-        continue-on-error: true
+      - name: Full docs gate slice (docs-sync + hr-audit-matrix)
+        if: steps.docs_paths.outputs.match == 'true'
+        run: pnpm check:docs-sync && pnpm check:hr-audit-matrix
 
   # ============================================================================
   # Auto-fix job (optional, triggered manually or on specific conditions)

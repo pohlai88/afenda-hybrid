@@ -9,6 +9,21 @@
 
 YAML in `.github/workflows/` is authoritative when this file and reality differ.
 
+### Early gate: documentation job (path filter)
+
+On **pull requests**, the documentation job always runs the Custom SQL registry validation and `check:architecture-docs`. It runs `check:docs-sync` and `check:hr-audit-matrix` only when the diff touches any of:
+
+- `docs/**`
+- `packages/db/src/**/README.md`
+- `packages/db/scripts/ci/check-docs-sync.ts`
+- `packages/db/scripts/ci/check-architecture-docs.ts`
+- `packages/db/scripts/ci/verify-hr-schema-audit-matrix.ts`
+- `.github/workflows/early-gate.yml`
+- `CONTRIBUTING.md`
+- `.github/pull_request_template.md`
+
+On **push** (to matching branches), **schedule**, and **workflow_dispatch**, that full docs slice always runs.
+
 ---
 
 ## Local Commands
@@ -22,10 +37,13 @@ pnpm gate:full
 ### 360-Degree Run (everything including DB-backed checks and tests)
 
 ```bash
-# Requires Docker test DB running
+# Requires Docker test DB, DATABASE_URL, and migrations applied — see CONTRIBUTING.md
 pnpm docker:test:start
+pnpm db:migrate
 pnpm gate:360
 ```
+
+**Local helper:** `pnpm gate:360:local` (Node: `packages/db/scripts/ops/gate-360-local.mjs`) runs Docker start unless `--skip-docker`, sets a default `DATABASE_URL` if unset, clears accidental `CI_STRICT_WARNINGS=1` unless `--strict`, migrates, then `gate:360`. Use `--verbose` to print each step; on failure it reports which phase exited non-zero. Thin wrappers: `gate-360-local.sh` (Unix), `gate-360-local.ps1` (Windows).
 
 Runs `gate:full` (all static checks including architecture docs via `gate:docs`) + `check:custom-sql-syntax` + `check:preflight` + `test:db`.
 
@@ -82,9 +100,9 @@ The Husky pre-commit hook runs automatically on `git commit`:
 
 ---
 
-## Check Inventory (18 static + 1 DB-backed)
+## Check Inventory (19 static in `check:all` + 2 more in `gate:early` + 1 DB-backed)
 
-### Included in `check:all` (18 checks)
+### Included in `pnpm check:all` (19 checks)
 
 | Check                       | Category     | Purpose                                        |
 | --------------------------- | ------------ | ---------------------------------------------- |
@@ -98,15 +116,24 @@ The Husky pre-commit hook runs automatically on `git commit`:
 | `check:indexes`             | Architecture | Tenant-led composites, partial indexes         |
 | `check:relations`           | Architecture | FK to relations completeness                   |
 | `check:cross-schema`        | Architecture | Tier hierarchy, circular deps                  |
-| `check:security`            | Security     | SQL injection, credentials, dangerous ops      |
-| `check:rls-policies`        | Security     | RLS on tenant tables, policy naming            |
-| `check:migrations`          | Migrations   | Drizzle format, checksums, custom SQL markers  |
-| `check:drift`               | Migrations   | Schema vs migrations drift                     |
-| `check:breaking-changes`    | Migrations   | Drops, type changes detection                  |
-| `check:custom-sql-registry` | Migrations   | CUSTOM_SQL_REGISTRY.json validation            |
-| `check:docs-sync`           | Docs         | README, table/docs alignment                   |
-| `check:architecture-docs`   | Docs         | Architecture layout, required files, ADR index |
 | `check:hr-audit-matrix`     | Docs         | HR schema audit matrix structure               |
+| `check:security`            | Security     | SQL injection, credentials, dangerous ops      |
+| `check:branded-ids`         | Types        | Branded ID exports and usage                   |
+| `check:type-inference`      | Types        | Drizzle/Zod inference consistency              |
+| `check:custom-sql-registry` | Migrations   | CUSTOM_SQL_REGISTRY.json validation            |
+| `check:rls-policies`        | Security     | RLS on tenant tables, policy naming            |
+| `check:docs-sync`           | Docs         | README, table/docs alignment (warnings common) |
+| `check:architecture-docs`   | Docs         | Architecture layout, required files, ADR index |
+| `check:breaking-changes`    | Migrations   | Drops, type changes detection                  |
+
+`pnpm gate:docs` runs the three doc-related checks only: `check:docs-sync`, `check:architecture-docs`, and `check:hr-audit-matrix` (same set as the doc slice of `check:all`, different order).
+
+### Also run by `pnpm gate:early` (not part of `check:all`)
+
+| Check              | Category   | Purpose                               |
+| ------------------ | ---------- | ------------------------------------- |
+| `check:migrations` | Migrations | Drizzle format, checksums, custom SQL |
+| `check:drift`      | Migrations | Schema vs migrations drift            |
 
 ### DB-Backed (not in check:all)
 

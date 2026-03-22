@@ -22,7 +22,7 @@ This repo uses **layered READMEs** with clear responsibilities. When making chan
 
 ### Doc Impact Checklist (for PRs)
 
-Before submitting a PR, ask:
+New pull requests use [`.github/pull_request_template.md`](.github/pull_request_template.md) with a short **Doc impact** section. Before submitting a PR, ask:
 
 - [ ] Did I add/rename/move a folder under `packages/db/src/`? → Update layout table in `packages/db/src/README.md`
 - [ ] Did I add a new npm script users should know? → Update `packages/db/README.md` and optionally `docs/QUICK_START.md`
@@ -72,10 +72,40 @@ Before pushing:
 # Fast static checks (no DB)
 pnpm gate:full
 
-# Full 360 (requires Docker test DB on port 5433)
-pnpm docker:test:start
-pnpm gate:360
+# Full 360 (requires Docker test DB on port 5433, DATABASE_URL, migrations applied)
 ```
+
+**One-shot helper** (cross-platform via Node: starts Docker test DB, applies migrations, clears accidental strict env, defaults `DATABASE_URL` if unset):
+
+```bash
+pnpm gate:360:local
+```
+
+Flags (same on all platforms): `--verbose` / `-v` (echo each step), `--skip-docker` (DB already running), `--strict` (keep `CI_STRICT_WARNINGS=1` if set).
+
+**macOS / Linux** (optional direct shell wrapper):
+
+```bash
+bash packages/db/scripts/ops/gate-360-local.sh --verbose
+```
+
+**Windows** (optional PowerShell wrapper maps `-SkipDocker` → `--skip-docker`, etc.):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packages/db/scripts/ops/gate-360-local.ps1 -SkipDocker -Verbose
+```
+
+**Manual sequence** (any OS):
+
+1. `pnpm docker:test:start`
+2. Set `DATABASE_URL` — e.g. `postgresql://postgres:postgres@localhost:5433/afenda_test` (printed when Docker starts), or define it in the **repo-root** `.env` so tools that load `../..\.env` see it.
+3. `pnpm db:migrate`
+4. `pnpm gate:360`
+
+**Environment hygiene**
+
+- **`CI_STRICT_WARNINGS`:** Leave **unset** for normal local runs. When set to `1`, several `check:*` scripts treat **warnings as errors** (e.g. `check:branded-ids`), which can make `gate:360` fail even though CI on PRs only uses strict mode when the workflow is dispatched with **strict_mode**. If you turned it on for a one-off check, unset it when done (`Remove-Item Env:CI_STRICT_WARNINGS` in PowerShell).
+- **`DATABASE_URL`:** Required for `check:preflight`, `check:custom-sql-syntax` (against a live DB), and `pnpm test:db`. Without it, `gate:360` fails late after minutes of static checks — set it early or use `pnpm gate:360:local`.
 
 See [docs/CI_GATES.md](docs/CI_GATES.md) for category-specific gates and auto-fix commands.
 

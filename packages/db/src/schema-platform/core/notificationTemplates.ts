@@ -19,6 +19,9 @@ export const notificationChannelEnum = coreSchema.enum("notification_channel", [
 export const NotificationChannelSchema = z.enum(notificationChannelValues);
 export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
 
+/**
+ * notification_templates — reusable templates per tenant and channel (subject/body).
+ */
 export const notificationTemplates = coreSchema.table(
   "notification_templates",
   {

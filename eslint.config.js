@@ -33,6 +33,16 @@ export default [
     },
   },
   {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       "dist/**",

@@ -25,6 +25,9 @@ export const workflowRuleOperatorEnum = coreSchema.enum("workflow_rule_operator"
 export const WorkflowRuleOperatorSchema = z.enum(workflowRuleOperators);
 export type WorkflowRuleOperator = z.infer<typeof WorkflowRuleOperatorSchema>;
 
+/**
+ * workflow_transition_rules — conditions on a transition (field, operator, value).
+ */
 export const workflowTransitionRules = coreSchema.table(
   "workflow_transition_rules",
   {

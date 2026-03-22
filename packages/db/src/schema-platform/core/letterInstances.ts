@@ -20,6 +20,9 @@ export const letterInstanceStatusEnum = coreSchema.enum("letter_instance_status"
 export const LetterInstanceStatusSchema = z.enum(letterInstanceStatuses);
 export type LetterInstanceStatus = z.infer<typeof LetterInstanceStatusSchema>;
 
+/**
+ * letter_instances — generated letters from templates for employees; delivery and acknowledgment.
+ */
 export const letterInstances = coreSchema.table(
   "letter_instances",
   {

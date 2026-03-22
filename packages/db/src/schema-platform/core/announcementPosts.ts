@@ -18,6 +18,9 @@ export const announcementStatusEnum = coreSchema.enum("announcement_status", [
 export const AnnouncementStatusSchema = z.enum(announcementStatuses);
 export type AnnouncementStatus = z.infer<typeof AnnouncementStatusSchema>;
 
+/**
+ * announcement_posts — tenant-scoped announcements with publish/expiry and lifecycle status.
+ */
 export const announcementPosts = coreSchema.table(
   "announcement_posts",
   {

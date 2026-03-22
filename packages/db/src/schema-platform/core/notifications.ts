@@ -21,6 +21,9 @@ export const notificationStatusEnum = coreSchema.enum("notification_status", [
 export const NotificationStatusSchema = z.enum(notificationStatuses);
 export type NotificationStatus = z.infer<typeof NotificationStatusSchema>;
 
+/**
+ * notifications — user-targeted messages; optional template, reference entity, read receipt.
+ */
 export const notifications = coreSchema.table(
   "notifications",
   {

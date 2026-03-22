@@ -19,6 +19,9 @@ export const workflowDefinitionStatusEnum = coreSchema.enum("workflow_definition
 export const WorkflowDefinitionStatusSchema = z.enum(workflowDefinitionStatuses);
 export type WorkflowDefinitionStatus = z.infer<typeof WorkflowDefinitionStatusSchema>;
 
+/**
+ * workflow_definitions — reusable workflow templates targeting a schema/table; versioning via status.
+ */
 export const workflowDefinitions = coreSchema.table(
   "workflow_definitions",
   {
