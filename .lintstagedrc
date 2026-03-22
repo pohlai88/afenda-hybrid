@@ -1,8 +1,8 @@
 {
   "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
   "*.{json,md,yml,yaml}": ["prettier --write"],
-  "src/db/schema-platform/**/*.ts": [
-    "pnpm check:naming",
-    "pnpm check:compliance"
+  "packages/db/src/schema-platform/**/*.ts": [
+    "pnpm --filter @afenda/db check:naming",
+    "pnpm --filter @afenda/db check:compliance"
   ]
 }

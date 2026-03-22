@@ -1,0 +1,105 @@
+{
+  "$schema": "./shared-exceptions.schema.json",
+  "description": "Exceptions for shared column mixin enforcement. Add entries here when bypassing _shared mixins with valid justification.",
+  "exceptions": [
+    {
+      "file": "src/schema-platform/core/tenants.ts",
+      "table": "tenants",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "tenants table defines tenantId as PK, not a FK reference",
+      "owner": "core-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/core/organizations.ts",
+      "table": "organizations",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control with onDelete/onUpdate actions",
+      "owner": "core-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/core/locations.ts",
+      "table": "locations",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control with onDelete/onUpdate actions",
+      "owner": "core-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/core/regions.ts",
+      "table": "regions",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Regions are shared reference data, not tenant-scoped",
+      "owner": "core-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/audit/auditTrail.ts",
+      "table": "audit_trail",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Audit trail has special FK requirements for data retention",
+      "owner": "core-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/security/users.ts",
+      "table": "users",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control with onDelete/onUpdate actions",
+      "owner": "security-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/security/roles.ts",
+      "table": "roles",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control with onDelete/onUpdate actions",
+      "owner": "security-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/security/userRoles.ts",
+      "table": "user_roles",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control and composite PK with userId/roleId",
+      "owner": "security-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/security/servicePrincipals.ts",
+      "table": "service_principals",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Explicit tenantId for precise FK control with onDelete/onUpdate actions",
+      "owner": "security-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-platform/audit/retentionPolicy.ts",
+      "table": "retention_policies",
+      "column": "tenantId",
+      "rule": "use-tenant-mixin",
+      "reason": "Nullable tenantId for global default policies (NULL = applies to all tenants)",
+      "owner": "audit-team",
+      "date": "2026-03-19"
+    },
+    {
+      "file": "src/schema-hrm/talent/operations/goalTracking.ts",
+      "table": "goal_tracking",
+      "column": "updatedBy",
+      "rule": "use-audit-mixin",
+      "reason": "Append-only tracking row: single optional actor column (see appendOnlyTimestampColumns + Circular FK note for FK enforcement)",
+      "owner": "talent-team",
+      "date": "2026-03-21"
+    }
+  ]
+}

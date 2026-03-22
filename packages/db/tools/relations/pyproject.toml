@@ -1,0 +1,16 @@
+[project]
+name = "afenda-relations"
+version = "0.1.0"
+description = "Introspect PostgreSQL FK metadata and auto-generate Drizzle defineRelations() TypeScript code"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg[binary]>=3.1",
+    "rich>=13.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+afenda-relations = "cli:app"
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy"]

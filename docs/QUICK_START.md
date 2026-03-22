@@ -1,368 +1,41 @@
-# AFENDA-HYBRID Quick Start Guide
+# Quick start
 
-**Last Updated**: March 20, 2026  
-**Status**: ✅ Environment Ready
+Work from the **repo root**. Database code: `packages/db/` (`@afenda/db`).
 
----
-
-## 🚀 First Time Setup (Already Done!)
-
-✅ Docker test database is running  
-✅ Environment variables configured  
-✅ Migrations applied  
-✅ Git repository initialized
-
----
-
-## 📋 Daily Development Commands
-
-### Database Operations
+## Once
 
 ```bash
-# Start database (if stopped)
+pnpm install
+cp .env.example .env   # DATABASE_URL required
 pnpm docker:test:start
-
-# Check database status
-pnpm docker:test:status
-
-# Open Drizzle Studio (visual database browser)
-pnpm db:studio
-
-# Open psql shell
-pnpm docker:test:shell
-```
-
-### Schema Changes Workflow
-
-```bash
-# 1. Edit schema files in src/db/schema-platform/
-
-# 2. Generate migration
-pnpm db:generate
-
-# 3. Validate migration format
-pnpm check:migrations
-
-# 4. Check for schema drift
-pnpm check:drift
-
-# 5. Apply migration
 pnpm db:migrate
-
-# 6. Verify in Drizzle Studio
-pnpm db:studio
 ```
 
-### Testing
+## Often
 
 ```bash
-# Run smoke tests (quick validation)
+pnpm docker:test:start | stop | reset | status
+pnpm db:generate       # after editing schema/*.ts
+pnpm db:migrate
+pnpm check:migrations
+pnpm check:drift
 pnpm test:db:smoke
-
-# Run all database tests
 pnpm test:db
-
-# Run contract tests
-pnpm test:db:contracts
-
-# Recreate test DB + migrations (fixes half-migrated / "relation already exists")
-pnpm test:db:recreate
-
-# Same as recreate, then contract tests (living contract harness on a clean slate)
-pnpm test:db:contracts:clean
-
-# Run all tests
-pnpm test
-```
-
-#### Resetting the test database
-
-Contract tests apply migrations in `beforeAll`. If a run stops halfway or the catalog is corrupted, Postgres can error with **`relation … already exists`** or similar. Fix it without touching Docker volumes:
-
-```bash
-pnpm test:db:recreate
-# or explicitly:
-pnpm exec tsx scripts/reset-test-db.ts
-```
-
-This connects to the `postgres` maintenance database, **drops and recreates** `afenda_test` (from `DATABASE_URL`), and runs **all Drizzle migrations** again. By default the script only allows database name `afenda_test`; set `AFENDA_FORCE_DB_RESET=1` if you use another dedicated test database name.
-
-To wipe the Docker volume entirely (container reset), use **`pnpm docker:test:reset`** instead.
-
-### Validation & Quality Checks
-
-```bash
-# Run all validation checks
-pnpm check:all
-
-# Run early gate (fast checks for pre-commit)
 pnpm gate:early
-
-# Run strict gate (for CI/CD)
-pnpm gate:strict
-
-# Type checking
-pnpm typecheck
-
-# Linting
-pnpm lint
-pnpm lint:fix
-
-# Formatting
-pnpm format
-pnpm format:check
 ```
 
----
+Single test (from `packages/db`): `pnpm test:db -- src/__tests__/smoke.test.ts`
 
-## 🔧 Docker Database Management
+## Schema change
 
-```bash
-# Start database
-pnpm docker:test:start
+Edit `packages/db/src/schema-platform/` or `schema-hrm/` → `pnpm db:generate` → review `src/migrations/` → append `-- CUSTOM: …` only at file end if needed → register in `CUSTOM_SQL_REGISTRY.json` and [CUSTOM_SQL.md](../packages/db/src/schema-platform/audit/CUSTOM_SQL.md) → `pnpm db:migrate` → `pnpm gate:early`.
 
-# Stop database (keeps data)
-pnpm docker:test:stop
+Avoid `db:push` in normal flow ([SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)).
 
-# Stop and remove container
-pnpm docker:test:down
+## Layout
 
-# Reset database (removes all data and restarts)
-pnpm docker:test:reset
+- `packages/db/src/schema-platform/` — core, security, audit
+- `packages/db/src/schema-hrm/` — hr, payroll, talent, recruitment, …
+- `packages/db/src/migrations/` — generated SQL
 
-# View logs
-pnpm docker:test:logs
-
-# Check status
-pnpm docker:test:status
-
-# Open psql shell
-pnpm docker:test:shell
-```
-
-**Connection String**:
-
-```
-postgresql://postgres:postgres@localhost:5433/afenda_test
-```
-
----
-
-## 📁 Project Structure
-
-```
-d:\AFENDA-HYBRID\
-├── src/
-│   └── db/
-│       ├── schema/           # Drizzle ORM schema definitions
-│       │   ├── core/         # Core business entities
-│       │   ├── security/     # Auth & access control
-│       │   ├── audit/        # Audit trail & logging
-│       │   ├── hr/           # Human resources
-│       │   ├── finance/      # Financial entities
-│       │   └── index.ts      # Schema barrel export
-│       ├── migrations/       # Generated SQL migrations
-│       └── db.ts             # Database connection
-├── scripts/                  # Validation & automation scripts
-├── docs/                     # Documentation
-│   ├── README.md            # Doc index
-│   ├── SCHEMA_LOCKDOWN.md   # Schema lockdown guide
-│   └── architecture/
-│       └── 01-db-first-guideline.md
-├── .env                      # Environment variables (not in Git)
-├── .env.example              # Environment template
-├── drizzle.config.ts         # Drizzle Kit configuration
-└── docker-compose.test.yml   # Test database configuration
-```
-
----
-
-## 🛡️ Schema Lockdown Rules
-
-### ❌ NEVER Use
-
-```bash
-pnpm db:push  # DISABLED - bypasses migration tracking
-```
-
-### ✅ ALWAYS Use
-
-```bash
-pnpm db:generate  # Generate migration
-pnpm db:migrate   # Apply migration
-```
-
-### Emergency Bypass (Local Dev Only)
-
-```bash
-pnpm db:push:unsafe  # Use with extreme caution!
-```
-
----
-
-## 📝 Custom SQL Guidelines
-
-### When to Use Custom SQL
-
-- Table partitioning
-- Triggers and trigger functions
-- PostgreSQL-specific indexes (GIN, GIST)
-- Row-level security policies
-- Database functions/procedures
-
-### Required Steps
-
-1. Add `-- CUSTOM: CSQL-XXX` marker in migration file
-2. Register in `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`
-3. Document in `src/db/schema-platform/audit/CUSTOM_SQL.md`
-4. Get DBA approval (use GitHub issue template)
-
-**See**: `docs/SCHEMA_LOCKDOWN.md` for full process
-
----
-
-## 🔍 Validation Checks
-
-| Command            | Purpose              | When to Run         |
-| ------------------ | -------------------- | ------------------- |
-| `check:naming`     | Naming conventions   | Before commit       |
-| `check:structure`  | Schema structure     | Before commit       |
-| `check:compliance` | Guideline compliance | Before commit       |
-| `check:tenant`     | Tenant isolation     | Before commit       |
-| `check:migrations` | Migration format     | After `db:generate` |
-| `check:drift`      | Schema drift         | Before commit       |
-| `check:all`        | All checks           | Before PR           |
-| `gate:early`       | Fast gate checks     | Pre-commit hook     |
-| `gate:strict`      | Strict gate checks   | CI/CD               |
-
----
-
-## 🐛 Troubleshooting
-
-### Database won't start
-
-```bash
-# Check Docker is running
-docker ps
-
-# View logs
-pnpm docker:test:logs
-
-# Reset database
-pnpm docker:test:reset
-```
-
-### Migration fails
-
-```bash
-# Check environment
-pnpm db:prepare
-
-# Verify database is running
-pnpm docker:test:status
-
-# Check migration format
-pnpm check:migrations
-
-# View database logs
-pnpm docker:test:logs
-```
-
-### Schema drift detected
-
-```bash
-# Check what changed
-pnpm check:drift
-
-# Generate new migration
-pnpm db:generate
-
-# Apply migration
-pnpm db:migrate
-```
-
-### Environment variables not loading
-
-```bash
-# Check .env file exists
-cat .env
-
-# Verify DATABASE_URL is set
-echo $env:DATABASE_URL
-
-# Run preparation check
-pnpm db:prepare
-```
-
-See `.env.example` for all documented variables (database, optional GitHub PAT for local tooling, optional script flags).
-
-**GitHub token note:** If you add `GITHUB_PERSONAL_ACCESS_TOKEN` to `.env`, Drizzle and other Node tools that load `dotenv` will see it. **Cursor’s GitHub MCP** does not read the project `.env`; configure the MCP server in Cursor (or set the variable in your user/system environment) if searches or PR tools fail with “Bad credentials”.
-
----
-
-## 🎯 Common Tasks
-
-### Add a New Table
-
-1. Create the table module under `src/db/schema-platform/<area>/` (platform) or `src/db/schema-hrm/<domain>/` (HCM).
-2. Export from the domain `index.ts` (and from `schema-platform/index.ts` if adding a new barrel surface).
-3. Generate migration: `pnpm db:generate`
-4. Validate: `pnpm check:migrations`
-5. Apply: `pnpm db:migrate`
-6. Verify: `pnpm db:studio`
-
-### Add a New Column
-
-1. Edit schema file
-2. Generate migration: `pnpm db:generate`
-3. Validate: `pnpm check:migrations`
-4. Apply: `pnpm db:migrate`
-
-### Add Custom SQL (Trigger, Partition, etc.)
-
-1. Generate migration: `pnpm db:generate`
-2. Edit migration file, add custom SQL with `-- CUSTOM: CSQL-XXX` marker
-3. Register in `CUSTOM_SQL_REGISTRY.json`
-4. Document in `CUSTOM_SQL.md`
-5. Create GitHub issue for approval
-6. Validate: `pnpm check:migrations`
-7. Apply: `pnpm db:migrate`
-
-### Reset Database to Clean State
-
-```bash
-pnpm docker:test:reset
-pnpm db:migrate
-```
-
----
-
-## 📚 Key Documentation
-
-- **Doc index**: [docs/README.md](./README.md)
-- **Schema Lockdown**: [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)
-- **Database Guidelines**: [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)
-- **Custom SQL**: `src/db/schema-platform/audit/CUSTOM_SQL.md`
-
----
-
-## 🔗 Useful Links
-
-- **Drizzle ORM Docs**: https://orm.drizzle.team/
-- **Drizzle Kit Docs**: https://orm.drizzle.team/kit-docs/overview
-- **PostgreSQL Docs**: https://www.postgresql.org/docs/16/
-
----
-
-## 💡 Tips
-
-- Use `pnpm db:studio` to visually explore your database
-- Run `pnpm gate:early` before committing
-- Check `pnpm docker:test:status` if migrations fail
-- Keep migrations small and focused
-- Always validate with `pnpm check:migrations` after generating
-- Use `pnpm check:drift` to catch uncommitted schema changes
-
----
-
-**Happy Coding! 🚀**
+**More:** [README.md](./README.md) · [packages/db/README.md](../packages/db/README.md)

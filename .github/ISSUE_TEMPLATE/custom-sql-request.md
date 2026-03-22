@@ -31,7 +31,7 @@ assignees: ["@dba-team", "@schema-owners"]
 - [ ] Stored procedures and functions
 - [ ] Advanced indexes (GIN with jsonb_path_ops, partial indexes with complex expressions)
 - [ ] Row-level security (RLS) policies
-- [ ] Other: **********\_**********
+- [ ] Other: ****\*\*****\_****\*\*****
 
 ### SQL Snippet
 
@@ -48,7 +48,7 @@ assignees: ["@dba-team", "@schema-owners"]
 <!-- Which migration will this be added to? -->
 
 - **Migration name**: (e.g., 20260320120000_add_audit_triggers)
-- **Related schema files**: (e.g., src/db/schema-platform/audit/auditTrail.ts)
+- **Related schema files**: (e.g., packages/db/src/schema-platform/audit/auditTrail.ts)
 - **Related tables**: (e.g., audit.audit_trail, hr.employees)
 
 ### Rollback Procedure
@@ -97,8 +97,8 @@ assignees: ["@dba-team", "@schema-owners"]
 
 <!-- Confirm you will update the required documentation -->
 
-- [ ] Will add entry to `src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`
-- [ ] Will document in `src/db/schema-platform/audit/CUSTOM_SQL.md` (if detailed explanation needed)
+- [ ] Will add entry to `packages/db/src/schema-platform/audit/CUSTOM_SQL_REGISTRY.json`
+- [ ] Will document in `packages/db/src/schema-platform/audit/CUSTOM_SQL.md` (if detailed explanation needed)
 - [ ] Will add `-- CUSTOM: <purpose> (CSQL-XXX)` marker in migration file
 
 ### Approval Checklist
@@ -114,7 +114,7 @@ assignees: ["@dba-team", "@schema-owners"]
 - [ ] Security review passed
 - [ ] Documentation requirements met
 
-**Approved by:** @****\_\_\_****
+**Approved by:** @\***\*\_\_\_\*\***
 **Approval date:** YYYY-MM-DD
 
 ---
@@ -123,4 +123,4 @@ assignees: ["@dba-team", "@schema-owners"]
 
 - [Schema Lockdown Guide](../../docs/SCHEMA_LOCKDOWN.md)
 - [DB-First Guideline](../../docs/architecture/01-db-first-guideline.md)
-- [Custom SQL Documentation](../../src/db/schema-platform/audit/CUSTOM_SQL.md)
+- [Custom SQL Documentation](../../packages/db/src/schema-platform/audit/CUSTOM_SQL.md)

@@ -8,10 +8,10 @@ services:
       POSTGRES_DB: afenda_test
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
-      - "5433:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
+      - "5433:5432" # Use 5433 to avoid conflicts with local PostgreSQL
     volumes:
       - postgres-test-data:/var/lib/postgresql/data
-      - ./scripts/docker-init-test-db.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
+      - ./packages/db/scripts/ops/docker-init-test-db.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d afenda_test"]
       interval: 5s

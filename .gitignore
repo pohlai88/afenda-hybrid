@@ -40,17 +40,17 @@ drizzle/meta/
 *.sqlite
 .drizzle/
 
-# Drizzle introspect output (canonical schema lives in src/db/schema-platform/)
-src/db/migrations/schema.ts
-src/db/migrations/relations.ts
+# Drizzle introspect output (canonical schema lives in packages/db/src/schema-platform/)
+packages/db/src/migrations/schema.ts
+packages/db/src/migrations/relations.ts
 
 # Drizzle push artifacts (prevent accidental commits)
-src/db/migrations/**/push-*
-src/db/migrations/**/.push-*
+packages/db/src/migrations/**/push-*
+packages/db/src/migrations/**/.push-*
 
 # Temporary migration files
-src/db/migrations/**/*.tmp
-src/db/migrations/**/*-temp.sql
+packages/db/src/migrations/**/*.tmp
+packages/db/src/migrations/**/*-temp.sql
 
 # Temporary files
 *.tmp

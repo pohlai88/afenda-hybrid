@@ -3,15 +3,15 @@ name: Database CI Gate
 on:
   pull_request:
     paths:
-      - "src/db/schema-platform/**"
-      - "src/db/migrations/**"
-      - "drizzle.config.ts"
-      - "package.json"
+      - "packages/db/src/schema-platform/**"
+      - "packages/db/src/migrations/**"
+      - "packages/db/drizzle.config.ts"
+      - "packages/db/package.json"
   push:
     branches: [main]
     paths:
-      - "src/db/schema-platform/**"
-      - "src/db/migrations/**"
+      - "packages/db/src/schema-platform/**"
+      - "packages/db/src/migrations/**"
 
 env:
   POSTGRES_VERSION: "16"
@@ -57,9 +57,9 @@ jobs:
       - name: Verify no uncommitted migrations
         run: |
           pnpm db:generate --name=ci-check
-          if [ -n "$(git status --porcelain src/db/migrations)" ]; then
+          if [ -n "$(git status --porcelain packages/db/src/migrations)" ]; then
             echo "::error::Uncommitted schema changes detected. Run 'pnpm db:generate' and commit the migration."
-            git diff src/db/migrations
+            git diff packages/db/src/migrations
             exit 1
           fi
 
@@ -304,8 +304,8 @@ jobs:
           echo "Checking migrations for concurrent safety issues..."
 
           # Check for CREATE INDEX without CONCURRENTLY on large tables
-          if ls src/db/migrations/**/migration.sql 1> /dev/null 2>&1; then
-            for file in src/db/migrations/**/migration.sql; do
+          if ls packages/db/src/migrations/**/migration.sql 1> /dev/null 2>&1; then
+            for file in packages/db/src/migrations/**/migration.sql; do
               # Check for non-concurrent index creation
               if grep -qE "CREATE (UNIQUE )?INDEX(?! CONCURRENTLY)" "$file"; then
                 echo "::warning file=$file::Non-concurrent index creation detected. Consider using CREATE INDEX CONCURRENTLY for large tables."
@@ -497,7 +497,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Type check schema files
-        run: pnpm tsc --noEmit
+        run: pnpm typecheck
 
       - name: Verify Zod schema exports
         run: pnpm db:verify-exports
@@ -539,7 +539,7 @@ jobs:
 
       - name: Check for sensitive data in migrations
         run: |
-          if grep -rE "(password|secret|api_key|token)\s*=" src/db/migrations/**/*.sql 2>/dev/null; then
+          if grep -rE "(password|secret|api_key|token)\s*=" packages/db/src/migrations/**/*.sql 2>/dev/null; then
             echo "::error::Potential sensitive data found in migration files"
             exit 1
           fi
@@ -547,7 +547,7 @@ jobs:
 
       - name: Check for dangerous operations
         run: |
-          DANGEROUS=$(grep -rE "DROP TABLE|TRUNCATE|DELETE FROM [^W]*$" src/db/migrations/**/*.sql 2>/dev/null || true)
+          DANGEROUS=$(grep -rE "DROP TABLE|TRUNCATE|DELETE FROM [^W]*$" packages/db/src/migrations/**/*.sql 2>/dev/null || true)
           if [ -n "$DANGEROUS" ]; then
             echo "::warning::Dangerous operations detected in migrations. Ensure rollback plan exists."
             echo "$DANGEROUS"
@@ -562,13 +562,13 @@ jobs:
           fi
 
           # Additional check: verify registry exists and is valid JSON
-          if [ ! -f "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+          if [ ! -f "packages/db/src/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
             exit 1
           fi
 
           # Validate JSON syntax
-          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+          if ! node -e "JSON.parse(require('fs').readFileSync('packages/db/src/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
             exit 1
           fi
@@ -580,12 +580,12 @@ jobs:
           echo "Checking for potential SQL injection patterns..."
 
           # Check for string concatenation in SQL
-          if grep -rE "\+\s*['\"].*SELECT|INSERT|UPDATE|DELETE" src/db/ --include="*.ts" 2>/dev/null | grep -v "test"; then
+          if grep -rE "\+\s*['\"].*SELECT|INSERT|UPDATE|DELETE" packages/db/src/ --include="*.ts" 2>/dev/null | grep -v "test"; then
             echo "::warning::Potential SQL injection via string concatenation detected"
           fi
 
           # Check for template literals without sql tag
-          if grep -rE '\$\{.*\}.*FROM|WHERE|INSERT|UPDATE' src/db/ --include="*.ts" 2>/dev/null | grep -v "sql\`" | grep -v "test"; then
+          if grep -rE '\$\{.*\}.*FROM|WHERE|INSERT|UPDATE' packages/db/src/ --include="*.ts" 2>/dev/null | grep -v "sql\`" | grep -v "test"; then
             echo "::warning::Template literal without sql tag detected - potential SQL injection"
           fi
 

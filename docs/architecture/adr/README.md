@@ -50,15 +50,15 @@ When you add **TRM**, **multiposting**, or another major area:
 2. **Copy sections** from [0001](./0001-candidate-hired-hr-bridge.md): **Context**, **Decision**, **Consequences**, **Rollback** (and optional **Verification** / **Related**).
 3. **Link peers**: if recruitment-only, reference **0002**; if it tightens **candidates**, reference **0001**.
 4. **Register** this README: add a row to **Index** and, if needed, one line in the **Map** (new box or “extends 0002”).
-5. **Wire discoverability**: link from the relevant doc under `docs/` (e.g. databank, domain primer) and from affected `src/db/schema-platform/**` JSDoc where helpful.
+5. **Wire discoverability**: link from the relevant doc under `docs/` (e.g. databank, domain primer) and from affected `packages/db/src/schema-platform/**` JSDoc where helpful.
 
 Do **not** use ADRs for routine migration notes; those stay in migration folders and the db-first guideline.
 
-**Audit matrix guardrails:** Adding or removing `recruitment.*` / `talent.*` tables requires updating `docs/hr-schema-audit-matrix.md` and `scripts/lib/hr-schema-audit-matrix-core.ts` (`REQUIRED_RECRUITMENT_TABLES` / `REQUIRED_TALENT_TABLES`, `EXPECTED_TABLE_ROWS`). CI: `pnpm check:hr-audit-matrix` and `hr-schema-audit-matrix.test.ts`.
+**Audit matrix guardrails:** Adding or removing `recruitment.*` / `talent.*` tables requires updating `docs/hcm/hr-schema-audit-matrix.md` and `packages/db/scripts/lib/hr-schema-audit-matrix-core.ts` (`REQUIRED_RECRUITMENT_TABLES` / `REQUIRED_TALENT_TABLES`, `EXPECTED_TABLE_ROWS`). CI: `pnpm check:hr-audit-matrix` and `hr-schema-audit-matrix.test.ts`.
 
 ---
 
-## Related
+## Related docs
 
-- [Recruitment candidate databank](../../recruitment-candidate-databank.md) — links **0001** and **0002** in scope.
+- [Recruitment candidate databank](../../hcm/recruitment-candidate-databank.md) — links **0001** and **0002** in scope.
 - [DB-first guideline](../01-db-first-guideline.md) — migrations, CSQL, drift.

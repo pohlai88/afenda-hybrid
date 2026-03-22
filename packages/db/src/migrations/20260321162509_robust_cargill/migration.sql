@@ -1,0 +1,4 @@
+ALTER TABLE "core"."notifications" ADD CONSTRAINT "fk_notifications_recipient_user" FOREIGN KEY ("recipientUserId") REFERENCES "security"."users"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;--> statement-breakpoint
+ALTER TABLE "core"."notification_subscriptions" ADD CONSTRAINT "fk_notification_subscriptions_user" FOREIGN KEY ("userId") REFERENCES "security"."users"("userId") ON DELETE CASCADE ON UPDATE CASCADE;--> statement-breakpoint
+ALTER TABLE "core"."workflow_action_logs" ADD CONSTRAINT "fk_workflow_action_logs_actor" FOREIGN KEY ("actorId") REFERENCES "security"."users"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;--> statement-breakpoint
+ALTER TABLE "core"."workflow_transitions" ADD CONSTRAINT "fk_workflow_transitions_required_role" FOREIGN KEY ("requiredRoleId") REFERENCES "security"."roles"("roleId") ON DELETE SET NULL ON UPDATE CASCADE;

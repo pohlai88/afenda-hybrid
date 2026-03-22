@@ -1,38 +1,23 @@
-# Documentation index
+# Documentation
 
-Start here for project documentation. Older audits and one-off reports were removed from the tree; use git history if you need them.
+Monorepo focus: **`@afenda/db`** (`packages/db/`).
 
-## Database & schema
+## Use these first
 
-| Doc                                                                                            | Description                                                     |
-| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md)                                                     | Schema lockdown rules, custom SQL workflow, validation          |
-| [QUICK_START.md](./QUICK_START.md)                                                             | Commands: DB, Docker, migrations, checks                        |
-| [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)               | DB-first guidelines (incl. custom SQL §8.2)                     |
-| [architecture/adr/README.md](./architecture/adr/README.md)                                     | Architecture Decision Records (ADR) index                       |
-| [../src/db/README.md](../src/db/README.md)                                                     | DB package overview & script pointers                           |
-| [../src/db/schema-platform/audit/CUSTOM_SQL.md](../src/db/schema-platform/audit/CUSTOM_SQL.md) | Custom SQL patterns & snippets                                  |
-| [hr-schema-audit-matrix.md](./hr-schema-audit-matrix.md)                                       | 108-table HCM audit rubric (Pass/Partial/Fail)                  |
-| [hr-data-dictionary.md](./hr-data-dictionary.md)                                               | PII tiers, payroll statutory keys, go-live fields               |
-| [hr-lifecycle-onboarding-offboarding.md](./hr-lifecycle-onboarding-offboarding.md)             | Onboarding checklist vs exit data; offboarding roadmap          |
-| [recruitment-candidate-databank.md](./recruitment-candidate-databank.md)                       | Candidate profile vs applications grain, dual status, HR bridge |
-| [HR_REPORTING_POLICY.md](./HR_REPORTING_POLICY.md)                                             | `managerId` vs `reporting_lines` source of truth                |
+| Doc                                        | Purpose                              |
+| ------------------------------------------ | ------------------------------------ |
+| [QUICK_START.md](./QUICK_START.md)         | Setup, Docker test DB, migrate, test |
+| [SCHEMA_LOCKDOWN.md](./SCHEMA_LOCKDOWN.md) | Migrations + custom SQL              |
+| [CI_GATES.md](./CI_GATES.md)               | What CI runs; local commands         |
 
-## CI & quality gates
+**Checks:** `pnpm check:docs-sync` · `pnpm check:hr-audit-matrix` · `pnpm gate:early`
 
-| Doc                          | Description               |
-| ---------------------------- | ------------------------- |
-| [CI_GATES.md](./CI_GATES.md) | CI gates and local checks |
+## Reference
 
-## Operations
-
-| Doc                                                            | Description          |
-| -------------------------------------------------------------- | -------------------- |
-| [testing/DOCKER_TEST_SETUP.md](./testing/DOCKER_TEST_SETUP.md) | Docker test database |
-
-## Patterns
-
-| Doc                                                                                  | Description     |
-| ------------------------------------------------------------------------------------ | --------------- |
-| [patterns/README.md](./patterns/README.md)                                           | Pattern index   |
-| [patterns/case-insensitive-uniqueness.md](./patterns/case-insensitive-uniqueness.md) | Example pattern |
+| Area                   | Doc                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| DB design rules        | [architecture/01-db-first-guideline.md](./architecture/01-db-first-guideline.md)     |
+| HCM                    | [hcm/README.md](./hcm/README.md)                                                     |
+| Preflight SQL          | [preflight/README.md](./preflight/README.md)                                         |
+| ADRs                   | [architecture/adr/](./architecture/adr/README.md)                                    |
+| Case-insensitive codes | [patterns/case-insensitive-uniqueness.md](./patterns/case-insensitive-uniqueness.md) |

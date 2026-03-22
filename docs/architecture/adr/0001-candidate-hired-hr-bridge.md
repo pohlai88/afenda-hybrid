@@ -24,13 +24,13 @@
 
 - **Pros:** Single invariant across API validation and DB; fewer “HIRED” rows missing HR linkage.
 - **Cons:** Cannot persist `HIRED` without both IDs; phased hire must use intermediate statuses.
-- **Changing this policy** requires: ADR superseding this one, migration to drop or replace the CHECK, doc updates (`recruitment-candidate-databank.md` §0), and Zod changes.
+- **Changing this policy** requires: ADR superseding this one, migration to drop or replace the CHECK, doc updates (`docs/hcm/recruitment-candidate-databank.md` §0), and Zod changes.
 
 ## Rollback / relaxation
 
 1. Migration: `ALTER TABLE recruitment.candidates DROP CONSTRAINT chk_candidates_hired_requires_hr_bridge;` (and optionally replace with a weaker CHECK).
 2. Update `candidates.ts` Zod refinements and module JSDoc.
-3. Update §0 in `docs/recruitment-candidate-databank.md` and mark this ADR **Superseded** with a link to the new ADR.
+3. Update §0 in `docs/hcm/recruitment-candidate-databank.md` and mark this ADR **Superseded** with a link to the new ADR.
 
 ## Related data quality: legacy `expectedSalary` text
 
@@ -53,12 +53,12 @@ Structured fields (`expectedSalaryAmount`, currency, period) are canonical. Back
 
 ### Integration (follow-up)
 
-| Case                                        | Expect                                                                                                            |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Concurrent creates same `tenantId` + email  | One success; other `23505` on `uq_candidates_email` — see `src/db/__tests__/candidates-email-concurrency.test.ts` |
-| Zod-valid insert → DB → read numeric salary | Round-trip matches                                                                                                |
+| Case                                        | Expect                                                                                                                     |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Concurrent creates same `tenantId` + email  | One success; other `23505` on `uq_candidates_email` — see `packages/db/src/__tests__/candidates-email-concurrency.test.ts` |
+| Zod-valid insert → DB → read numeric salary | Round-trip matches                                                                                                         |
 
-Run: `pnpm vitest run --config vitest.db.config.ts src/db/__tests__/candidates-zod.test.ts`
+Run: `pnpm vitest run packages/db/src/__tests__/candidates-zod.test.ts`
 
 ## See also
 

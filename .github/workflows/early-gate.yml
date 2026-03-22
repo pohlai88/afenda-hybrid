@@ -151,9 +151,9 @@ jobs:
       - name: Verify migration sequence
         run: |
           # Check migration files are properly sequenced
-          if ls src/db/migrations/*.sql 1> /dev/null 2>&1; then
+          if ls packages/db/src/migrations/*.sql 1> /dev/null 2>&1; then
             echo "Checking migration sequence..."
-            ls -la src/db/migrations/*.sql
+            ls -la packages/db/src/migrations/*.sql
             echo "✅ Migration files found"
           else
             echo "ℹ️ No migration files yet"
@@ -285,7 +285,7 @@ jobs:
           echo "Checking for destructive operations in migrations..."
 
           # Get changed migration files
-          CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/db/migrations/**/*.sql' 2>/dev/null || true)
+          CHANGED_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'packages/db/src/migrations/**/*.sql' 2>/dev/null || true)
 
           if [ -n "$CHANGED_MIGRATIONS" ]; then
             echo "Changed migrations:"
@@ -369,14 +369,14 @@ jobs:
       - name: Check migration security
         run: |
           echo "Checking migration files for security issues..."
-          if ls src/db/migrations/*.sql 1> /dev/null 2>&1; then
+          if ls packages/db/src/migrations/*.sql 1> /dev/null 2>&1; then
             # Check for dangerous patterns
-            if grep -rE "GRANT ALL|SUPERUSER|CREATEDB|CREATEROLE" src/db/migrations/*.sql 2>/dev/null; then
+            if grep -rE "GRANT ALL|SUPERUSER|CREATEDB|CREATEROLE" packages/db/src/migrations/*.sql 2>/dev/null; then
               echo "::warning::Elevated privileges detected in migrations"
             fi
             
             # Check for unparameterized queries
-            if grep -rE "DELETE FROM.*WHERE.*=" src/db/migrations/*.sql 2>/dev/null | grep -v "tenant_id"; then
+            if grep -rE "DELETE FROM.*WHERE.*=" packages/db/src/migrations/*.sql 2>/dev/null | grep -v "tenant_id"; then
               echo "::warning::DELETE without tenant_id filter detected"
             fi
           fi
@@ -385,10 +385,10 @@ jobs:
       - name: Verify RLS patterns (if enabled)
         run: |
           echo "Checking RLS policy patterns..."
-          if grep -r "withRLS\|pgPolicy" src/db/schema-platform/ 2>/dev/null; then
+          if grep -r "withRLS\|pgPolicy" packages/db/src/schema-platform/ 2>/dev/null; then
             echo "RLS detected, verifying patterns..."
             # Ensure RLS policies reference tenant_id
-            if grep -r "pgPolicy" src/db/schema-platform/ | grep -v "tenant_id"; then
+            if grep -r "pgPolicy" packages/db/src/schema-platform/ | grep -v "tenant_id"; then
               echo "::warning::RLS policy without tenant_id reference detected"
             fi
           fi
@@ -426,13 +426,13 @@ jobs:
           echo "Validating CUSTOM_SQL_REGISTRY.json..."
 
           # Check registry exists
-          if [ ! -f "src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
+          if [ ! -f "packages/db/src/schema-platform/audit/CUSTOM_SQL_REGISTRY.json" ]; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is missing"
             exit 1
           fi
 
           # Validate JSON syntax
-          if ! node -e "JSON.parse(require('fs').readFileSync('src/db/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
+          if ! node -e "JSON.parse(require('fs').readFileSync('packages/db/src/schema-platform/audit/CUSTOM_SQL_REGISTRY.json', 'utf-8'))" 2>/dev/null; then
             echo "::error::CUSTOM_SQL_REGISTRY.json is not valid JSON"
             exit 1
           fi

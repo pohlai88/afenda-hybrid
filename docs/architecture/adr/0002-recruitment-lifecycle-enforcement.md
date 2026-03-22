@@ -22,7 +22,7 @@ PostgreSQL **does not** enforce (3) for every FK pair we care about. Some rules 
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Zod** (Drizzle `createInsertSchema` / `createUpdateSchema` + `superRefine`) | First line for API payloads; mirrors important CHECKs; encodes **partial-update** contracts (“if you set status in this patch, include sibling fields”).                             | Interview `result` only when `status = COMPLETED`; offer `declineReason` / `respondedAt` when `DECLINED`; positive `tenantId` / FK ids on insert.                                                                                                               |
 | **PostgreSQL**                                                                | Source of truth for **integrity** that must hold for all writers (SQL, migrations, batch jobs): CHECKs, FKs, partial uniques, **custom triggers** where ORM cannot express the rule. | `chk_candidates_hired_requires_hr_bridge` ([ADR 0001](./0001-candidate-hired-hr-bridge.md)); `chk_interviews_completed_timing`; `chk_offer_letters_expiry`; CSQL-015 exit interview ↔ checklist trigger; `uq_applications_candidate_requisition` (active rows). |
-| **Service helpers** (`src/db/_services/recruitment/*.ts`)                     | **Tenant and parent alignment** before insert; **`schema.parse()`** for defense in depth; stable `Error` subclasses with **`code`** for logging and API mapping.                     | `createApplication`, `createInterview`, `createOfferLetter`, `createBackgroundCheck`, `createCandidateSalaryBackfillIssue`, `createExitInterview`.                                                                                                              |
+| **Service helpers** (`packages/db/src/_services/recruitment/*.ts`)            | **Tenant and parent alignment** before insert; **`schema.parse()`** for defense in depth; stable `Error` subclasses with **`code`** for logging and API mapping.                     | `createApplication`, `createInterview`, `createOfferLetter`, `createBackgroundCheck`, `createCandidateSalaryBackfillIssue`, `createExitInterview`.                                                                                                              |
 
 **Principle:** Prefer **DB** for “must never be violated by any client.” Prefer **Zod** for “HTTP/API contract and ergonomic partial updates.” Prefer **service** for **cross-table tenant checks** that Postgres does not enforce on the FK graph alone.
 
@@ -39,7 +39,7 @@ PostgreSQL **does not** enforce (3) for every FK pair we care about. Some rules 
 | **Salary backfill issues** | FKs                                                   | `normalizedDigits` shape when set; positive ids                                           | `createCandidateSalaryBackfillIssue` — candidate tenant match                            |
 | **Exit interviews**        | CSQL-015 triggers + completion CHECK                  | `conductedAt` when `COMPLETED`                                                            | `createExitInterview` — linked checklist tenant + employee + category (ahead of trigger) |
 
-Canonical narrative for **profile vs application vs funnel**: `docs/recruitment-candidate-databank.md`. Per-table JSDoc in `src/db/schema-hrm/recruitment/**` points to services where applicable.
+Canonical narrative for **profile vs application vs funnel**: `docs/hcm/recruitment-candidate-databank.md`. Per-table JSDoc in `packages/db/src/schema-hrm/recruitment/**` points to services where applicable.
 
 ## Consequences
 
@@ -49,9 +49,9 @@ Canonical narrative for **profile vs application vs funnel**: `docs/recruitment-
 
 ## How to change safely
 
-1. **Zod-only relaxation/tightening** — Edit the table’s `*InsertSchema` / `*UpdateSchema`, adjust `src/db/__tests__/*-zod.test.ts`, update this ADR’s module table or add a short “Amendment” subsection with date.
+1. **Zod-only relaxation/tightening** — Edit the table’s `*InsertSchema` / `*UpdateSchema`, adjust `packages/db/src/__tests__/*-zod.test.ts`, update this ADR’s module table or add a short “Amendment” subsection with date.
 2. **New DB constraint or trigger** — Migration + `pnpm check:migrations`; register custom SQL per [01-db-first-guideline](../01-db-first-guideline.md); add or extend integration tests.
-3. **New cross-table tenant guard** — Add or extend `src/db/_services/recruitment/*Service.ts`, add `*-tenant-consistency.test.ts` (or domain-specific name), document in `recruitment-candidate-databank.md` §3-style bullets.
+3. **New cross-table tenant guard** — Add or extend `packages/db/src/_services/recruitment/*Service.ts`, add `*-tenant-consistency.test.ts` (or domain-specific name), document in `docs/hcm/recruitment-candidate-databank.md` §3-style bullets.
 4. **Breaking product policy** — New ADR that **Supersedes** or **Amends** this one; link from README.
 
 ## Rollback
@@ -63,7 +63,7 @@ No single migration rolls back this _strategy_. Revert individual features by re
 | Concern           | Tests / scripts                                                                                           |
 | ----------------- | --------------------------------------------------------------------------------------------------------- |
 | Zod exports       | `pnpm db:verify-exports`                                                                                  |
-| Migrations        | `pnpm exec tsx scripts/validate-migrations.ts`                                                            |
+| Migrations        | `pnpm exec tsx scripts/ci/validate-migrations.ts`                                                         |
 | Candidates        | `candidates-zod.test.ts`, email concurrency, HIRED rules                                                  |
 | Applications      | `applications-zod.test.ts`, `applications-tenant-consistency.test.ts`, `applications-concurrency.test.ts` |
 | Interviews        | `interviews-zod.test.ts`, `interviews-tenant-consistency.test.ts`                                         |
@@ -73,11 +73,11 @@ No single migration rolls back this _strategy_. Revert individual features by re
 | Backfill issues   | `candidate-salary-backfill-issues-*` tests                                                                |
 | Exit interviews   | `exit-interviews-zod.test.ts`, `exit-interviews-tenant-consistency.test.ts`                               |
 
-HR audit matrix: `docs/hr-schema-audit-matrix.md` + `pnpm check:hr-audit-matrix` + `src/db/__tests__/hr-schema-audit-matrix.test.ts` (recruitment + talent required sets and row count).
+HR audit matrix: `docs/hcm/hr-schema-audit-matrix.md` + `pnpm check:hr-audit-matrix` + `packages/db/src/__tests__/hr-schema-audit-matrix.test.ts` (recruitment + talent required sets and row count).
 
 ## Related
 
 - [ADR index / map](./README.md) — how 0001 and 0002 fit together; how to add 0003+
 - [ADR 0001 — Candidate HIRED HR-bridge](./0001-candidate-hired-hr-bridge.md)
-- [Recruitment candidate databank](../../recruitment-candidate-databank.md)
+- [Recruitment candidate databank](../../hcm/recruitment-candidate-databank.md)
 - [DB-first guideline](../01-db-first-guideline.md) (migrations, CSQL, custom SQL)

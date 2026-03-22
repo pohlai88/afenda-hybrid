@@ -15,6 +15,7 @@ export default [
       },
       globals: {
         ...globals.node,
+        ...globals.browser,
       },
     },
     plugins: {
@@ -38,7 +39,6 @@ export default [
       "coverage/**",
       "*.config.js",
       "*.config.ts",
-      "scripts/validate-registry.js",
     ],
   },
 ];
