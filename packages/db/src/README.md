@@ -22,6 +22,8 @@ pnpm db:studio
 | `migrations/`      | Generated SQL (append `-- CUSTOM:` blocks at end only)           |
 | `_shared/`         | Column mixins, Zod helpers                                       |
 | `_session/`        | `setSessionContext` / `clearSessionContext` (Postgres GUCs)      |
+| `_rls/`            | RLS policy helpers (frozen; add RLS via SQL migrations)          |
+| `_seeds/`          | Bootstrap and seed scripts for platform data                     |
 | `_queries/`        | Multi-table reads/writes                                         |
 | `_services/`       | Use-case services (e.g. recruitment guards)                      |
 | `__tests__/`       | Vitest                                                           |

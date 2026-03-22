@@ -27,6 +27,8 @@ pnpm docker:test:start
 pnpm gate:360
 ```
 
+Runs `gate:full` (all static checks including architecture docs via `gate:docs`) + `check:custom-sql-syntax` + `check:preflight` + `test:db`.
+
 ### Category-Specific Gates
 
 Run only the checks you need:
@@ -39,7 +41,7 @@ Run only the checks you need:
 | `pnpm gate:architecture` | tenant + indexes + relations + cross-schema                        | No        |
 | `pnpm gate:security`     | security + rls-policies                                            | No        |
 | `pnpm gate:migrations`   | migrations + drift + breaking-changes + custom-sql-registry        | No        |
-| `pnpm gate:docs`         | docs-sync + hr-audit-matrix                                        | No        |
+| `pnpm gate:docs`         | docs-sync + architecture-docs + hr-audit-matrix                    | No        |
 
 ### Legacy Gates (kept for compatibility)
 
@@ -84,26 +86,27 @@ The Husky pre-commit hook runs automatically on `git commit`:
 
 ### Included in `check:all` (18 checks)
 
-| Check                       | Category     | Purpose                                       |
-| --------------------------- | ------------ | --------------------------------------------- |
-| `check:naming`              | Conventions  | Schema/table/column naming patterns           |
-| `check:structure`           | Conventions  | Barrel exports, \_relations.ts, tier layout   |
-| `check:compliance`          | Conventions  | DB-first guidelines, Zod patterns, mixins     |
-| `check:constraints`         | Conventions  | NOT NULL, CHECK, UNIQUE, enum defaults        |
-| `check:shared`              | Conventions  | Mixin usage for timestamps/audit              |
-| `check:enums`               | Conventions  | Enum consistency and exports                  |
-| `check:tenant`              | Architecture | tenantId, FK to tenants, tenant in indexes    |
-| `check:indexes`             | Architecture | Tenant-led composites, partial indexes        |
-| `check:relations`           | Architecture | FK to relations completeness                  |
-| `check:cross-schema`        | Architecture | Tier hierarchy, circular deps                 |
-| `check:security`            | Security     | SQL injection, credentials, dangerous ops     |
-| `check:rls-policies`        | Security     | RLS on tenant tables, policy naming           |
-| `check:migrations`          | Migrations   | Drizzle format, checksums, custom SQL markers |
-| `check:drift`               | Migrations   | Schema vs migrations drift                    |
-| `check:breaking-changes`    | Migrations   | Drops, type changes detection                 |
-| `check:custom-sql-registry` | Migrations   | CUSTOM_SQL_REGISTRY.json validation           |
-| `check:docs-sync`           | Docs         | README, table/docs alignment                  |
-| `check:hr-audit-matrix`     | Docs         | HR schema audit matrix structure              |
+| Check                       | Category     | Purpose                                        |
+| --------------------------- | ------------ | ---------------------------------------------- |
+| `check:naming`              | Conventions  | Schema/table/column naming patterns            |
+| `check:structure`           | Conventions  | Barrel exports, \_relations.ts, tier layout    |
+| `check:compliance`          | Conventions  | DB-first guidelines, Zod patterns, mixins      |
+| `check:constraints`         | Conventions  | NOT NULL, CHECK, UNIQUE, enum defaults         |
+| `check:shared`              | Conventions  | Mixin usage for timestamps/audit               |
+| `check:enums`               | Conventions  | Enum consistency and exports                   |
+| `check:tenant`              | Architecture | tenantId, FK to tenants, tenant in indexes     |
+| `check:indexes`             | Architecture | Tenant-led composites, partial indexes         |
+| `check:relations`           | Architecture | FK to relations completeness                   |
+| `check:cross-schema`        | Architecture | Tier hierarchy, circular deps                  |
+| `check:security`            | Security     | SQL injection, credentials, dangerous ops      |
+| `check:rls-policies`        | Security     | RLS on tenant tables, policy naming            |
+| `check:migrations`          | Migrations   | Drizzle format, checksums, custom SQL markers  |
+| `check:drift`               | Migrations   | Schema vs migrations drift                     |
+| `check:breaking-changes`    | Migrations   | Drops, type changes detection                  |
+| `check:custom-sql-registry` | Migrations   | CUSTOM_SQL_REGISTRY.json validation            |
+| `check:docs-sync`           | Docs         | README, table/docs alignment                   |
+| `check:architecture-docs`   | Docs         | Architecture layout, required files, ADR index |
+| `check:hr-audit-matrix`     | Docs         | HR schema audit matrix structure               |
 
 ### DB-Backed (not in check:all)
 
@@ -121,3 +124,31 @@ The Husky pre-commit hook runs automatically on `git commit`:
 | `check:grievance-resolution-preflight`    | Grievance resolution                     |
 | `check:learning-cert-lifecycle-preflight` | Learning completion/certs                |
 | `check:succession-plans-preflight`        | Succession plans lifecycle               |
+
+---
+
+## Architecture Documentation Rules
+
+`check:architecture-docs` enforces the layout of `docs/architecture/`:
+
+**Required files:**
+
+- `docs/architecture/00-overview.md`
+- `docs/architecture/01-db-first-guideline.md`
+- `docs/architecture/adr/README.md`
+
+**Allowed structure:**
+
+- `.md` files in the root of `docs/architecture/`
+- ADRs under `adr/` (format: `NNNN-*.md`)
+- No other subdirectories (edit allowlist in `check-architecture-docs.ts` if adding `diagrams/` etc.)
+
+**ADR index consistency:** Every ADR file under `adr/` (except `README.md`) must be mentioned in `adr/README.md` (substring check).
+
+**Fix violations:**
+
+- Missing required file: Create it or restore from git history
+- Disallowed directory: Move contents to allowed location or add to allowlist
+- ADR not in index: Add link/row to `adr/README.md`
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for README tier roles and doc update checklist.

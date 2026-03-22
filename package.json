@@ -74,6 +74,7 @@
     "check:custom-sql-registry": "pnpm --filter @afenda/db check:custom-sql-registry",
     "check:custom-sql-syntax": "pnpm --filter @afenda/db check:custom-sql-syntax",
     "check:docs-sync": "pnpm --filter @afenda/db check:docs-sync",
+    "check:architecture-docs": "pnpm --filter @afenda/db check:architecture-docs",
     "check:drift": "pnpm --filter @afenda/db check:drift",
     "check:enums": "pnpm --filter @afenda/db check:enums",
     "check:indexes": "pnpm --filter @afenda/db check:indexes",

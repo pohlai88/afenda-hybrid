@@ -442,6 +442,9 @@ jobs:
 
           echo "✅ Custom SQL Registry validation passed"
 
+      - name: Check architecture documentation layout
+        run: pnpm check:architecture-docs
+
       - name: Check schema documentation completeness
         run: pnpm check:docs-sync || true
         continue-on-error: true
