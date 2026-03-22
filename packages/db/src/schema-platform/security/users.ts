@@ -13,7 +13,7 @@ import { createSelectSchema, createInsertSchema, createUpdateSchema } from "driz
 import { z } from "zod/v4";
 import { auditColumns, softDeleteColumns, timestampColumns } from "../../_shared";
 import { tenants } from "../core/tenants";
-import { tenantIsolationPolicies, serviceBypassPolicy } from "../../rls";
+import { tenantIsolationPolicies, serviceBypassPolicy } from "../../_rls";
 
 // --- Schema + enums (PG + Zod) ---
 

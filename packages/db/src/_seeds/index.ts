@@ -26,7 +26,7 @@ export { seedBootstrap, type BootstrapResult };
  * - `03_dashboard_widgets`, `09_appraisal_templates` → extra starter data beyond the original 7 scripts
  *
  * Usage:
- *   import { runSeeds } from "./db/seeds";
+ *   import { runSeeds } from "./db/_seeds";
  *   await runSeeds(tenantId, systemUserId);
  */
 export async function runSeeds(tenantId: number, systemUserId: number) {
@@ -59,7 +59,7 @@ export async function runSeeds(tenantId: number, systemUserId: number) {
  * Full bootstrap: creates tenant, system user, currencies, then runs all seeds.
  *
  * Usage:
- *   import { runFullBootstrap } from "./db/seeds";
+ *   import { runFullBootstrap } from "./db/_seeds";
  *   const { tenantId, systemUserId } = await runFullBootstrap();
  */
 export async function runFullBootstrap(): Promise<BootstrapResult> {

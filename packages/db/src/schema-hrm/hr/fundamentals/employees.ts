@@ -16,7 +16,7 @@ import { timestampColumns, softDeleteColumns, auditColumns } from "../../../_sha
 import { tenants } from "../../../schema-platform/core/tenants";
 import { locations } from "../../../schema-platform/core/locations";
 import { legalEntities } from "../../../schema-platform/core/legalEntities";
-import { tenantIsolationPolicies, serviceBypassPolicy } from "../../../rls";
+import { tenantIsolationPolicies, serviceBypassPolicy } from "../../../_rls";
 
 /**
  * Employees - Work relationship entity linking a person to an organization.
