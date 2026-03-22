@@ -95,29 +95,30 @@
     "gate:docs": "pnpm check:docs-sync && pnpm check:hr-audit-matrix",
     "gate:full": "pnpm gate:lint && pnpm gate:types && pnpm gate:conventions && pnpm gate:architecture && pnpm gate:security && pnpm gate:migrations && pnpm gate:docs",
     "gate:360": "pnpm gate:full && pnpm check:custom-sql-syntax && pnpm check:preflight && pnpm test:db",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "drizzle-orm": "1.0.0-beta.18-7eb39f0",
-    "pg": "^8.13.0",
-    "zod": "^4.0.0"
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/pg": "^8.11.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "dotenv": "^17.3.1",
-    "drizzle-kit": "1.0.0-beta.18-7eb39f0",
-    "eslint": "^9.0.0",
-    "globals": "^17.4.0",
-    "prettier": "^3.3.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "dotenv": "catalog:",
+    "drizzle-kit": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=20.0.0"

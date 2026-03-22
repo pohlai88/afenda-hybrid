@@ -28,11 +28,11 @@ async function waitForDatabase(maxRetries = 30, delay = 1000): Promise<void> {
       return;
     } catch (error) {
       if (i === maxRetries - 1) {
-        throw new Error(
+        const message =
           `Database not available after ${maxRetries} retries. ` +
-            `Make sure Docker container is running: pnpm docker:test:start\n` +
-            `Error: ${error instanceof Error ? error.message : String(error)}`
-        );
+          `Make sure Docker container is running: pnpm docker:test:start\n` +
+          `Error: ${error instanceof Error ? error.message : String(error)}`;
+        throw new Error(message, { cause: error });
       }
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
