@@ -1,1 +1,6 @@
-@import "@afenda/ui/tokens/globals.css";
+@import "@afenda/ui-core/tokens/globals.css";
+
+@source "../../../packages/ui-core/src/**/*.tsx";
+@source "../../../packages/view-engine/src/**/*.tsx";
+@source "../../../packages/erp-view-pack/src/**/*.tsx";
+@source "../**/*.tsx";

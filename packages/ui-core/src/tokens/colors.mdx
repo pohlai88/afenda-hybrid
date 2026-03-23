@@ -1,0 +1,201 @@
+{/* @meta title: Foundation/Colors */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundation/Colors" />
+
+# Color System
+
+The AFENDA design system uses a high-contrast design language:
+deep blue primary, restrained neutral grays, functional status colors, and
+a gold accent used sparingly. Semantic tokens adapt between light and dark mode.
+
+---
+
+## Brand blue scale
+
+The primary palette. Use `500` for default actions, `700` for headers and emphasis,
+lighter tints for hover states and backgrounds.
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem", marginTop: "1rem" }}>
+  {[
+    { label: "50", hex: "#E8F0F8" },
+    { label: "100", hex: "#C5D9EE" },
+    { label: "200", hex: "#9EBFE2" },
+    { label: "300", hex: "#7AA7D6" },
+    { label: "400", hex: "#5B91CA" },
+    { label: "500", hex: "#005EB8" },
+    { label: "600", hex: "#004E9A" },
+    { label: "700", hex: "#003A70" },
+    { label: "800", hex: "#002952" },
+    { label: "900", hex: "#001A34" },
+    { label: "950", hex: "#000F1F" },
+  ].map((c) => (
+    <div key={c.label} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <div style={{ width: 36, height: 36, borderRadius: 6, backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.08)" }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 13, fontFamily: "var(--font-sans)" }}>{c.label}</div>
+        <code style={{ fontSize: 11 }}>{c.hex}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+### Usage
+
+```html
+<div class="bg-brand-500 text-white">Primary surface</div>
+<h1 class="text-brand-700">Deep blue heading</h1>
+<div class="bg-brand-50">Light tint background</div>
+```
+
+---
+
+## Neutral Scale
+
+Cool grays for text, borders, backgrounds, and subtle UI chrome.
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem", marginTop: "1rem" }}>
+  {[
+    { label: "50", hex: "#F8F9FA" },
+    { label: "100", hex: "#F1F3F5" },
+    { label: "200", hex: "#E9ECEF" },
+    { label: "300", hex: "#DEE2E6" },
+    { label: "400", hex: "#ADB5BD" },
+    { label: "500", hex: "#6C757D" },
+    { label: "600", hex: "#495057" },
+    { label: "700", hex: "#343A40" },
+    { label: "800", hex: "#212529" },
+    { label: "900", hex: "#1A1A2E" },
+    { label: "950", hex: "#0F0F1A" },
+  ].map((c) => (
+    <div key={c.label} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <div style={{ width: 36, height: 36, borderRadius: 6, backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.08)" }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 13, fontFamily: "var(--font-sans)" }}>{c.label}</div>
+        <code style={{ fontSize: 11 }}>{c.hex}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+---
+
+## Status Colors
+
+Functional colors that signal meaning. Never use for decoration.
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginTop: "1rem" }}>
+  {[
+    { label: "Success", hex: "#2E7D32", className: "success" },
+    { label: "Warning", hex: "#F57C00", className: "warning" },
+    { label: "Error", hex: "#C62828", className: "error" },
+    { label: "Info", hex: "#0277BD", className: "info" },
+  ].map((c) => (
+    <div key={c.label} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 6, backgroundColor: c.hex }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div>
+        <code style={{ fontSize: 11 }}>{c.hex}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+---
+
+## Accent Gold
+
+Used sparingly for highlights, featured badges, and premium callouts.
+
+<div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+  {[
+    { label: "Light", hex: "#F0DBA8" },
+    { label: "Default", hex: "#D4A843" },
+    { label: "Dark", hex: "#A07D2E" },
+  ].map((c) => (
+    <div key={c.label} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 6, backgroundColor: c.hex, border: "1px solid rgba(0,0,0,0.08)" }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div>
+        <code style={{ fontSize: 11 }}>{c.hex}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+---
+
+## Module Colours
+
+Each AFENDA HCM module has a dedicated brand colour, sourced from the
+`core.app_modules` database table. Re-tuned for blue-gray harmony.
+
+<div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginTop: "1rem" }}>
+  {[
+    { label: "Core", hex: "#3B62B5" },
+    { label: "Security", hex: "#7C4DBA" },
+    { label: "Audit", hex: "#6B7C8D" },
+    { label: "HR", hex: "#1A9D6E" },
+    { label: "Payroll", hex: "#E59400" },
+    { label: "Benefits", hex: "#C74B8A" },
+    { label: "Talent", hex: "#0C97AA" },
+    { label: "Learning", hex: "#17927D" },
+    { label: "Recruitment", hex: "#E06528" },
+  ].map((c) => (
+    <div key={c.label} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: c.hex }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div>
+        <code style={{ fontSize: 12 }}>{c.hex}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+### TypeScript
+
+```ts
+import { moduleColors, getModuleColor, colors } from "@afenda/ui-core/tokens";
+
+moduleColors.hr;              // "#1A9D6E"
+getModuleColor("recruitment"); // "#E06528"
+colors.brand[500];            // "#005EB8"
+colors.status.success;        // "#2E7D32"
+```
+
+---
+
+## Semantic Tokens
+
+Semantic tokens adapt to light and dark mode via the `.dark` class on `<html>`.
+
+| Token | Usage |
+|-------|-------|
+| `--background` | Page background |
+| `--foreground` | Default text |
+| `--card` / `--card-foreground` | Card surfaces |
+| `--popover` / `--popover-foreground` | Dropdown/popover surfaces |
+| `--primary` / `--primary-foreground` | Primary actions, links |
+| `--secondary` / `--secondary-foreground` | Secondary buttons |
+| `--muted` / `--muted-foreground` | Subtle backgrounds, helper text |
+| `--accent` / `--accent-foreground` | Hover/focus highlights |
+| `--destructive` / `--destructive-foreground` | Error, danger actions |
+| `--success` / `--success-foreground` | Positive confirmations |
+| `--warning` / `--warning-foreground` | Caution states |
+| `--info` / `--info-foreground` | Informational highlights |
+| `--border` | Default border colour |
+| `--input` | Input border colour |
+| `--ring` | Focus ring colour |
+
+---
+
+## Border Radius
+
+Tightened for a crisper, more professional feel.
+
+| Token | Value |
+|-------|-------|
+| `--radius` | `0.375rem` (6px) |
+| Tailwind `rounded-lg` | `var(--radius)` |
+| Tailwind `rounded-md` | `calc(var(--radius) - 2px)` |
+| Tailwind `rounded-sm` | `calc(var(--radius) - 4px)` |

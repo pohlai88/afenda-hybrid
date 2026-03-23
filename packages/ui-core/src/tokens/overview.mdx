@@ -1,0 +1,73 @@
+{/* @meta title: Welcome */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Welcome" />
+
+# AFENDA Design System
+
+<div style={{ marginTop: "1.5rem", marginBottom: "2rem", padding: "1.5rem", borderRadius: 8, border: "1px solid var(--border, #E9ECEF)", background: "var(--card, white)" }}>
+  <p style={{ fontSize: "1.125rem", lineHeight: 1.6, fontFamily: "Georgia, serif", marginBottom: "0.5rem" }}>
+    An enterprise-grade design system using a high-contrast visual language —
+    deep blue, serif-accented, data-dense but whitespace-generous.
+  </p>
+  <p style={{ fontSize: "0.875rem", color: "var(--muted-foreground, #6C757D)" }}>
+    Built on React 19, Tailwind CSS v4, Radix UI, and class-variance-authority.
+  </p>
+</div>
+
+---
+
+## Foundation
+
+The design system is built on a rigorous token layer:
+
+| Layer | Description |
+|-------|-------------|
+| **Colors** | Brand blue scale (50–950), neutral grays, gold accent, status colors, 9 module colours |
+| **Typography** | Source Serif 4 (headings) + Inter (body) — the serif/sans split signals authority for headlines and clarity for data |
+| **Spacing** | 4px base unit, 16 stops from 0 to 96 |
+| **Shadows** | 5-level elevation system (xs–xl) |
+| **Motion** | 3 duration tiers + 4 easing curves, respects `prefers-reduced-motion` |
+
+---
+
+## Architecture
+
+```
+@afenda/ui-core
+├── tokens/          Design tokens (CSS + JS)
+├── primitives/      Atomic components (Button, Card, Dialog, …)
+├── patterns/        Enterprise patterns (DataTable, PageHeader, …)
+├── hooks/           Hooks (useDebounce, useBreakpoint, …)
+├── lib/             Utilities (cn, formatters)
+└── providers/       ThemeProvider
+```
+
+---
+
+## Design Principles
+
+1. **Serif for authority** — Use `font-display` (Source Serif 4) on page titles
+   and KPI values. Never for body text.
+
+2. **Action titles** — Page headings state conclusions, not topics.
+   "Revenue grew 15% driven by enterprise" not "Revenue Overview".
+
+3. **Functional color** — Color signals meaning (status, trend, module).
+   Never decoration.
+
+4. **Generous whitespace** — Despite high data density, components breathe.
+   When in doubt, add space.
+
+5. **60-second rule** — Every view must be grasped in 60 seconds or less.
+
+---
+
+## Quick Start
+
+```tsx
+import { Button, Card, PageHeader, DataTable } from "@afenda/ui-core";
+import "@afenda/ui-core/tokens/globals.css";
+```
+
+Browse the sidebar to explore Foundation tokens, Primitives, Patterns, and Hooks.

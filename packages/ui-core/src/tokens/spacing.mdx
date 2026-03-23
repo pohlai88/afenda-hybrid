@@ -1,0 +1,64 @@
+{/* @meta title: Foundation/Spacing */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundation/Spacing" />
+
+# Spacing
+
+The spacing system is built on a **4px base unit**. All margins, paddings,
+and gaps should reference this scale to maintain visual rhythm.
+
+---
+
+## Scale
+
+<div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
+  {[
+    { tw: "0", px: "0px" },
+    { tw: "0.5", px: "2px" },
+    { tw: "1", px: "4px" },
+    { tw: "1.5", px: "6px" },
+    { tw: "2", px: "8px" },
+    { tw: "2.5", px: "10px" },
+    { tw: "3", px: "12px" },
+    { tw: "4", px: "16px" },
+    { tw: "5", px: "20px" },
+    { tw: "6", px: "24px" },
+    { tw: "8", px: "32px" },
+    { tw: "10", px: "40px" },
+    { tw: "12", px: "48px" },
+    { tw: "16", px: "64px" },
+    { tw: "20", px: "80px" },
+    { tw: "24", px: "96px" },
+  ].map((s) => (
+    <div key={s.tw} style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+      <code style={{ width: 48, fontSize: 12, textAlign: "right", flexShrink: 0 }}>p-{s.tw}</code>
+      <div style={{ height: 16, backgroundColor: "#005EB8", borderRadius: 2, width: parseInt(s.px) * 2 || 1, minWidth: 1 }} />
+      <span style={{ fontSize: 12, color: "#6C757D" }}>{s.px}</span>
+    </div>
+  ))}
+</div>
+
+---
+
+## Guidelines
+
+| Context | Recommended spacing |
+|---------|-------------------|
+| Inside cards | `p-5` (20px) to `p-6` (24px) |
+| Page margins | `p-6` (24px) to `p-8` (32px) |
+| Between cards | `gap-4` (16px) to `gap-6` (24px) |
+| Form field gap | `gap-4` (16px) |
+| Table cell padding | `px-3 py-2` (12px / 8px) compact, `px-4 py-3` comfortable |
+| Button internal | `px-4 py-2` default, `px-3 py-1.5` small |
+| Section spacing | `space-y-6` (24px) to `space-y-8` (32px) |
+
+---
+
+## Principles
+
+1. **Generous whitespace**: The system favours breathing room. When in doubt,
+   add more space, not less.
+2. **Consistent scale**: Always pick from the scale. Avoid arbitrary pixel values.
+3. **Density control**: Data-heavy views may use compact spacing (`p-3`, `gap-3`);
+   overview pages use comfortable spacing (`p-6`, `gap-6`).

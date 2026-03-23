@@ -24,6 +24,13 @@ function resolveDatabaseUrl(): string {
     process.env.DATABASE_URL = DEFAULT_LOCAL_TEST_DATABASE_URL;
     return DEFAULT_LOCAL_TEST_DATABASE_URL;
   }
+  /**
+   * Next.js `next build` imports server modules that reference `db` before runtime env is set.
+   * Drizzle does not open a socket until a query runs; a syntactically valid URL is enough for build.
+   */
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return "postgresql://127.0.0.1:5432/afenda_next_build_placeholder";
+  }
   throw new Error(
     "DATABASE_URL is not set. Define it in .env or the environment (not required under Vitest — a local test default is applied)."
   );

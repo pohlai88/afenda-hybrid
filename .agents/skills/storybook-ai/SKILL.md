@@ -29,7 +29,7 @@ npx storybook add @storybook/addon-mcp
 
 With the dev server running, the MCP endpoint is typically `http://localhost:6006/mcp` (port may differ). Opening that URL in a browser lists available tools and links to the manifest debugger.
 
-**Version note:** `@storybook/addon-mcp` expects **Storybook ^9.1.16 or ^10.x** (see package peers). This repo’s `@afenda/ui` package uses Storybook 10.x with `@storybook/addon-mcp` registered in `.storybook/main.ts`.
+**Version note:** `@storybook/addon-mcp` expects **Storybook ^9.1.16 or ^10.x** (see package peers). This monorepo no longer ships a Storybook app in-repo; add Storybook to `@afenda/ui-core` (or an app) and register `@storybook/addon-mcp` in that package’s `.storybook/main.ts` when needed.
 
 ## Point your agent at the MCP server
 

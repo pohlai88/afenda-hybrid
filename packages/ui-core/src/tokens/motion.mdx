@@ -1,0 +1,72 @@
+{/* @meta title: Foundation/Motion */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundation/Motion" />
+
+# Motion & Transitions
+
+Motion reinforces hierarchy and provides feedback. The system defines
+three duration tiers and four easing curves. All motion tokens
+respect `prefers-reduced-motion`.
+
+---
+
+## Duration
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--duration-fast` | 100ms | Hover states, focus rings, small toggles |
+| `--duration-normal` | 200ms | Panel transitions, dropdown open/close |
+| `--duration-slow` | 300ms | Page transitions, modal enter/exit |
+
+---
+
+## Easing
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--ease-default` | `cubic-bezier(0.4, 0, 0.2, 1)` | General transitions |
+| `--ease-in` | `cubic-bezier(0.4, 0, 1, 1)` | Exit animations |
+| `--ease-out` | `cubic-bezier(0, 0, 0.2, 1)` | Enter animations |
+| `--ease-bounce` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Playful micro-interactions (sparingly) |
+
+---
+
+## Usage in Components
+
+```css
+/* Hover transition */
+.btn {
+  transition: background-color var(--duration-fast) var(--ease-default),
+              box-shadow var(--duration-fast) var(--ease-default);
+}
+
+/* Panel enter */
+.panel-enter {
+  animation: slideIn var(--duration-normal) var(--ease-out);
+}
+
+/* Panel exit */
+.panel-exit {
+  animation: slideOut var(--duration-normal) var(--ease-in);
+}
+```
+
+---
+
+## Reduced Motion
+
+When `prefers-reduced-motion: reduce` is active, all duration tokens
+become `0ms` and CSS transitions/animations are suppressed globally.
+Components should never override this behaviour.
+
+---
+
+## Principles
+
+1. **Purposeful motion**: Animate to show relationships (where something
+   came from, where it's going). Never animate for decoration.
+2. **Fast by default**: 100-200ms covers most interactions. If an animation
+   feels slow, it probably is.
+3. **Consistent easing**: Use `ease-default` unless you have a specific
+   reason for another curve.

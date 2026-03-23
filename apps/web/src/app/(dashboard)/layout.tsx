@@ -1,35 +1,33 @@
+import { type ReactNode } from "react";
+import { ViewEngineProvider } from "@/providers/view-engine-provider";
+import { PermissionProvider } from "@/providers/permission-context";
+import { loadNavigation, loadPermissionKeyList, loadSession } from "@/lib/metadata";
+import { AppSidebar } from "@/components/app-sidebar";
+import { mapNavModulesToSidebar } from "@/components/map-nav-modules";
+import { PHASE1_TENANT_ID, PHASE1_USER_ID } from "@/lib/phase1-context";
+
+/** DB-backed nav + pages must not prerender at `next build` without a live database. */
 export const dynamic = "force-dynamic";
 
-import * as React from "react";
-import { getSession, getUserPermissions } from "@/lib/auth";
-import { getAppModulesWithMenu } from "@/lib/navigation";
-import { AppSidebar } from "@/components/app-sidebar";
-import { AppHeader } from "@/components/app-header";
-import { redirect } from "next/navigation";
+export default async function DashboardLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const [session, keyList, navTree] = await Promise.all([
+    loadSession(),
+    loadPermissionKeyList(PHASE1_TENANT_ID, PHASE1_USER_ID),
+    loadNavigation(PHASE1_TENANT_ID, PHASE1_USER_ID),
+  ]);
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  const permissions = await getUserPermissions(session.userId, session.tenantId);
-  const modules = await getAppModulesWithMenu(session.tenantId, permissions);
+  void session;
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <AppSidebar modules={modules} />
-      <div className="flex flex-1 flex-col overflow-hidden pl-64">
-        <AppHeader
-          user={{
-            displayName: session.displayName,
-            email: session.email,
-            avatarUrl: null,
-          }}
-        />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
-      </div>
-    </div>
+    <PermissionProvider keys={keyList}>
+      <ViewEngineProvider>
+        <div className="flex h-screen min-h-0 w-full overflow-hidden bg-background">
+          <AppSidebar modules={mapNavModulesToSidebar(navTree)} />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+          </div>
+        </div>
+      </ViewEngineProvider>
+    </PermissionProvider>
   );
 }

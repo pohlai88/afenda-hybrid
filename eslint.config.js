@@ -1,5 +1,6 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
+// Storybook: use an explicit flat block instead of `storybook.configs["flat/recommended"]`, whose
+// getter-based `plugins` can trigger circular JSON errors in ESLint's config validator.
+import storybookPlugin from "eslint-plugin-storybook";
 
 import eslint from "@eslint/js";
 import tseslint from "@typescript-eslint/eslint-plugin";
@@ -50,11 +51,39 @@ export default [eslint.configs.recommended, {
     "node_modules/**",
     "dist/**",
     "coverage/**",
+    "**/coverage/**",
     "*.config.js",
     "*.config.ts",
     ".next/**",
-    "apps/web/.next/**",
     "**/.next/**",
     "**/next-env.d.ts",
+    "**/storybook-static/**",
+    "**/*.min.js",
   ],
-}, ...storybook.configs["flat/recommended"]];
+}, {
+  files: ["**/*.stories.@(ts|tsx|js|jsx|mjs|cjs)", "**/*.story.@(ts|tsx|js|jsx|mjs|cjs)"],
+  plugins: {
+    storybook: storybookPlugin,
+  },
+  rules: {
+    "react-hooks/rules-of-hooks": "off",
+    "storybook/await-interactions": "error",
+    "storybook/context-in-play-function": "error",
+    "storybook/default-exports": "error",
+    "storybook/hierarchy-separator": "warn",
+    "storybook/no-redundant-story-name": "warn",
+    "storybook/no-renderer-packages": "error",
+    "storybook/prefer-pascal-case": "warn",
+    "storybook/story-exports": "error",
+    "storybook/use-storybook-expect": "error",
+    "storybook/use-storybook-testing-library": "error",
+  },
+}, {
+  files: [".storybook/main.@(js|cjs|mjs|ts)"],
+  plugins: {
+    storybook: storybookPlugin,
+  },
+  rules: {
+    "storybook/no-uninstalled-addons": "error",
+  },
+}];

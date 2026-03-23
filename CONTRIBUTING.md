@@ -28,6 +28,7 @@ New pull requests use [`.github/pull_request_template.md`](.github/pull_request_
 - [ ] Did I add a new npm script users should know? → Update `packages/db/README.md` and optionally `docs/QUICK_START.md`
 - [ ] Did I change Docker setup, test DB port, or migration flow? → Update `docs/QUICK_START.md`
 - [ ] Did I add a new doc area under `docs/` (new folder or major guide)? → Add link in `docs/README.md`
+- [ ] Did I add view-engine / frontend / Vitest documentation? → Place under `docs/view-engine/`, `docs/frontend/`, or `docs/testing/` and link from those indexes
 - [ ] Did I make a cross-cutting architectural decision? → Create ADR in `docs/architecture/adr/` and list it in `adr/README.md`
 - [ ] Did I add/change architecture guidance? → Update `docs/architecture/*.md` as appropriate
 

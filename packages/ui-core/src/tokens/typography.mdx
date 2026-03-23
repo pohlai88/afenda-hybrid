@@ -1,0 +1,135 @@
+{/* @meta title: Foundation/Typography */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundation/Typography" />
+
+# Typography
+
+AFENDA typography pairs a **serif display face** with a **sans-serif body face**,
+creating authority for headings while maintaining clarity for data-dense UIs.
+
+---
+
+## Font Families
+
+| Token | Stack | Tailwind Class | Usage |
+|-------|-------|----------------|-------|
+| `--font-display` | Source Serif 4, Georgia, Cambria, serif | `font-display` | Headings, KPI values, page titles |
+| `--font-sans` | Inter, system-ui, sans-serif | `font-sans` | Body text, labels, table data, UI elements |
+| `--font-mono` | JetBrains Mono, Fira Code, Consolas | `font-mono` | Code, technical values |
+
+> The **serif for headings / sans-serif for body** split signals authority while keeping interface
+> text crisp and legible.
+
+---
+
+## Type Scale
+
+<div style={{ display: "flex", flexDirection: "column", gap: "2rem", marginTop: "1.5rem" }}>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>Display — 2.5rem / 700 / -0.02em</code>
+    <div style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "-0.02em", fontFamily: "Georgia, serif", marginTop: 4 }}>Hero metrics</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>H1 — 2rem / 700 / -0.015em</code>
+    <div style={{ fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.015em", fontFamily: "Georgia, serif", marginTop: 4 }}>Page titles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>H2 — 1.5rem / 600 / -0.01em</code>
+    <div style={{ fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.01em", fontFamily: "Georgia, serif", marginTop: 4 }}>Section titles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>H3 — 1.25rem / 600</code>
+    <div style={{ fontSize: "1.25rem", fontWeight: 600, marginTop: 4 }}>Card titles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>H4 — 1rem / 600</code>
+    <div style={{ fontSize: "1rem", fontWeight: 600, marginTop: 4 }}>Subsection titles</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>Body — 0.875rem / 400</code>
+    <div style={{ fontSize: "0.875rem", fontWeight: 400, marginTop: 4 }}>Default body text, form fields, table data</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>Body Small — 0.8125rem / 400</code>
+    <div style={{ fontSize: "0.8125rem", fontWeight: 400, marginTop: 4 }}>Secondary text, descriptions</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>Caption — 0.75rem / 400 / +0.01em</code>
+    <div style={{ fontSize: "0.75rem", fontWeight: 400, letterSpacing: "0.01em", marginTop: 4, color: "#6C757D" }}>Labels, footnotes, timestamps, source attribution</div>
+  </div>
+  <div>
+    <code style={{ fontSize: 11, color: "#6C757D", letterSpacing: "0.04em", textTransform: "uppercase" }}>Overline — 0.6875rem / 600 / +0.08em</code>
+    <div style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4, color: "#6C757D" }}>CATEGORY TAGS, SECTION LABELS</div>
+  </div>
+</div>
+
+---
+
+## Font Weights
+
+| Weight | Tailwind | Usage |
+|--------|----------|-------|
+| 400 | `font-normal` | Body text, descriptions, table cells |
+| 500 | `font-medium` | Labels, table headers, nav items |
+| 600 | `font-semibold` | Card titles, dialog titles, badges, h3/h4 |
+| 700 | `font-bold` | Page headings (serif), metric values, display |
+
+---
+
+## Line Heights
+
+| Class | Value | Usage |
+|-------|-------|-------|
+| `leading-none` | 1 | Display metrics, large numbers |
+| `leading-tight` | 1.25 | Headings, card titles |
+| `leading-snug` | 1.375 | Compact body text |
+| `leading-normal` | 1.5 | Default body text |
+| `leading-relaxed` | 1.625 | Long-form descriptions |
+
+---
+
+## Usage Examples
+
+```html
+<!-- Page heading (serif, bold, tight tracking) -->
+<h1 class="font-display text-[2rem] font-bold tracking-tight">
+  Revenue grew 15% driven by enterprise segment
+</h1>
+
+<!-- Section title (serif) -->
+<h2 class="font-display text-2xl font-semibold tracking-tight">
+  Workforce Analytics
+</h2>
+
+<!-- Card title (sans-serif) -->
+<h3 class="text-xl font-semibold">Open Positions</h3>
+
+<!-- Body text -->
+<p class="text-sm text-muted-foreground">
+  Showing 1-20 of 143 employees
+</p>
+
+<!-- Overline label -->
+<span class="text-[0.6875rem] font-semibold uppercase tracking-widest text-muted-foreground">
+  Department
+</span>
+
+<!-- Caption / source attribution -->
+<span class="text-xs text-muted-foreground">
+  Source: HRIS export, March 2026
+</span>
+```
+
+---
+
+## Design Principles
+
+1. **Serif for authority**: Use `font-display` on page titles and KPI values to
+   signal importance. Never use serif for body text or labels.
+2. **Round sensibly**: Display numbers at appropriate precision. Executives
+   don't need two decimal places.
+3. **Action titles**: Page headings should state conclusions, not topics.
+   "Revenue grew 15%" not "Revenue Overview".
+4. **Consistent hierarchy**: Follow the type scale strictly. Don't invent
+   intermediate sizes.

@@ -1,0 +1,58 @@
+{/* @meta title: Foundation/Shadows */}
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundation/Shadows" />
+
+# Shadows & Elevation
+
+Shadows communicate depth and hierarchy. The system provides five levels,
+each mapped to a specific UI context. Use restraint — most surfaces
+need `shadow-sm` or no shadow at all.
+
+---
+
+## Scale
+
+<div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginTop: "1.5rem" }}>
+  {[
+    { name: "shadow-xs", value: "0 1px 2px rgba(0,0,0,0.05)", use: "Subtle lift, hover states" },
+    { name: "shadow-sm", value: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)", use: "Cards, list items" },
+    { name: "shadow-md", value: "0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.04)", use: "Popovers, dropdowns" },
+    { name: "shadow-lg", value: "0 12px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.04)", use: "Modals, dialogs" },
+    { name: "shadow-xl", value: "0 24px 48px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.06)", use: "Full-screen overlays" },
+  ].map((s) => (
+    <div key={s.name} style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+      <div style={{
+        width: 80, height: 56, borderRadius: 6,
+        backgroundColor: "white", boxShadow: s.value,
+        border: "1px solid rgba(0,0,0,0.04)",
+        flexShrink: 0,
+      }} />
+      <div>
+        <code style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</code>
+        <div style={{ fontSize: 12, color: "#6C757D", marginTop: 2 }}>{s.use}</div>
+      </div>
+    </div>
+  ))}
+</div>
+
+---
+
+## Usage
+
+```html
+<div class="shadow-sm rounded-lg bg-card">Card content</div>
+<div class="shadow-md rounded-lg bg-popover">Dropdown panel</div>
+<div class="shadow-lg rounded-lg bg-card">Dialog content</div>
+```
+
+---
+
+## Principles
+
+1. **Less is more**: Most surfaces need `shadow-sm` or no shadow. Reserve
+   larger shadows for elements that truly float above the page.
+2. **Consistent mapping**: Popovers always use `shadow-md`, dialogs always
+   use `shadow-lg`. Don't mix levels for the same component type.
+3. **Dark mode**: Shadows become less visible on dark backgrounds.
+   Dark mode relies more on border contrast than shadow depth.

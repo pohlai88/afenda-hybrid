@@ -6,6 +6,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Next.js
+.next/
+out/
+
 # Environment files
 .env
 .env.local
@@ -56,6 +60,13 @@ packages/db/src/migrations/**/*-temp.sql
 *.tmp
 *.temp
 .cache/
+.tmp-antfu-skills/
+
+# Python — react-governance CLI (tools/react-governance)
+tools/react-governance/.venv/
+tools/react-governance/**/__pycache__/
+tools/react-governance/.pytest_cache/
+tools/react-governance/**/*.egg-info/
 
 # Local compliance / audit scratch output (repo root; do not commit)
 /_compliance*.json
